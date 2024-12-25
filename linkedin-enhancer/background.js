@@ -22,14 +22,11 @@ function sendMessageToContentScript(tabId) {
             url: chrome.runtime.getURL("popup.html")
         }, function (tab) {
             popupTabId = tab.id;
-            // Check if the popup is ready before sending the message
-            setTimeout(() => {
-                if (popupReady) {
-                    console.log("Background script - Popup is ready, sending message to popup");
-                    sendMessageToPopup();
-                }
-            }, 100); // Add a 100ms delay
         });
+        if (popupReady) {
+            console.log("Background script - Popup is ready, sending message to popup");
+            sendMessageToPopup();
+        }
     });
 }
 
@@ -71,6 +68,9 @@ chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
                     console.log("Background script - Received popup ready message");
                     popupReady = true;
                     if (popupTabId) {
+                        sendMessageToPopup();
+                    }
+                    if (currentPostContent && popupTabId) {
                         sendMessageToPopup();
                     }
                     break;
