@@ -22,9 +22,7 @@ def run_aider():
 
     if mode == "architect":
         print("Running aider in architect mode...")
-        # Add any specific arguments for architect mode here
-        # For example, you could enable a specific plugin or set a different model
-        # aider_args.extend(["--model", "gpt-4-architect"])
+        aider_args.extend(["--model", "gpt-4-architect"])
     else:
         print("Running aider in normal mode...")
 
