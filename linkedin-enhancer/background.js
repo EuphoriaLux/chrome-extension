@@ -3,7 +3,7 @@ console.log("Background script loaded");
 let currentPostContent = "Could not retrieve post content.";
 let popupTabId = null;
 let popupReady = false;
-chrome.action.onClicked.addListener(() => {
+chrome.action.onClicked.addListener(function() {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
         const activeTab = tabs[0];
 
