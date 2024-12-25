@@ -7,22 +7,30 @@ chrome.runtime.onInstalled.addListener(() => {
 function handleWindowMessage(newWindow, response) {
     console.log("handleWindowMessage called with response:", response);
     
-    chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
-        console.log("Tab updated:", { tabId, changeInfo, expectedTabId: newWindow.tabs[0].id });
+    // Store the window ID for later use
+    const windowId = newWindow.id;
+    
+    chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo, tab) {
+        console.log("Tab updated:", { 
+            tabId, 
+            changeInfo, 
+            windowId: tab.windowId,
+            expectedWindowId: windowId 
+        });
         
-        if (tabId === newWindow.tabs[0].id && changeInfo.status === 'complete') {
-            console.log("Sending posts to window:", response?.posts);
-            
-            chrome.tabs.sendMessage(tabId, {
-                action: "setPostContent",
-                postContent: response?.posts || []
-            }, function(response) {
-                if (chrome.runtime.lastError) {
-                    console.error("Error sending message to window:", chrome.runtime.lastError);
-                } else {
-                    console.log("Message sent successfully to window");
-                }
-            });
+        // Check if this update is for a tab in our popup window
+        if (tab.windowId === windowId && changeInfo.status === 'complete') {
+            // Ensure we're not trying to inject into the extensions page
+            if (!tab.url.startsWith('chrome://')) {
+                console.log("Sending posts to window:", response?.posts);
+                
+                chrome.tabs.sendMessage(tabId, {
+                    action: "setPostContent",
+                    postContent: response?.posts || []
+                }).catch(error => {
+                    console.error("Error sending message:", error);
+                });
+            }
             
             chrome.tabs.onUpdated.removeListener(listener);
         }
@@ -38,9 +46,12 @@ chrome.action.onClicked.addListener(async (tab) => {
     }
 
     try {
+        // Store the original tab ID
+        const originalTabId = tab.id;
+
         console.log("Injecting content script...");
         await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
+            target: { tabId: originalTabId },
             files: ['content.js']
         });
         console.log("Content script injected successfully");
@@ -53,19 +64,19 @@ chrome.action.onClicked.addListener(async (tab) => {
         }, function(newWindow) {
             console.log("New window created:", newWindow);
             
+            // Use a longer delay to ensure the content script is ready
             setTimeout(() => {
                 console.log("Sending message to content script to get posts...");
-                chrome.tabs.sendMessage(tab.id, {action: "getPostContent"}, function(response) {
-                    if (chrome.runtime.lastError) {
-                        console.error("Error getting posts:", chrome.runtime.lastError);
+                chrome.tabs.sendMessage(originalTabId, {action: "getPostContent"})
+                    .then(response => {
+                        console.log("Received response from content script:", response);
+                        handleWindowMessage(newWindow, response);
+                    })
+                    .catch(error => {
+                        console.error("Error getting posts:", error);
                         handleWindowMessage(newWindow, { posts: [] });
-                        return;
-                    }
-                    
-                    console.log("Received response from content script:", response);
-                    handleWindowMessage(newWindow, response);
-                });
-            }, 1000); // Increased delay to 1000ms
+                    });
+            }, 2000); // Increased delay to 2000ms
         });
     } catch (error) {
         console.error("Error in click handler:", error);
