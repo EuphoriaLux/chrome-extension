@@ -10,6 +10,19 @@ const debugInfo = {
     lastMessage: document.getElementById('last-message')
 };
 
+function showDebugInfo(debugData) {
+    const debugContainer = document.getElementById('debug-info');
+    if (debugData && debugContainer) {
+        const debugHTML = `
+            <div>Debug Information:</div>
+            <div>Total Posts Found: ${debugData.totalPostsFound || 0}</div>
+            <div>Timestamp: ${debugData.timestamp || 'N/A'}</div>
+            ${debugData.errorStack ? `<div>Error: ${debugData.errorStack}</div>` : ''}
+        `;
+        debugContainer.innerHTML = debugHTML;
+    }
+}
+
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
         messageCount++;
@@ -27,6 +40,9 @@ chrome.runtime.onMessage.addListener(
         });
         
         if (request.action === "setPostContent") {
+            if (request.debug) {
+                showDebugInfo(request.debug);
+            }
             if (!request.postContent) {
                 console.error("No post content received");
                 document.getElementById('status-message').textContent = "No posts received";

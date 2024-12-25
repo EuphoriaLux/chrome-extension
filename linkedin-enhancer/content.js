@@ -1,128 +1,163 @@
 console.log("Content script loaded and running");
 
+// Debug configuration
+const DEBUG = {
+    enabled: true,
+    logPostHTML: true,
+    logSelectors: true
+};
+
+function debugLog(...args) {
+    if (DEBUG.enabled) {
+        console.log(...args);
+    }
+}
+
+function debugError(...args) {
+    if (DEBUG.enabled) {
+        console.error(...args);
+    }
+}
+
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
-        console.log("Content script received message:", request);
+        debugLog("Content script received message:", request);
         
         if (request.action === "getPostContent") {
             try {
-                console.log("Getting LinkedIn posts...");
+                debugLog("Getting LinkedIn posts...");
                 const postContent = getLinkedInPosts();
-                console.log("Retrieved posts:", postContent);
-                sendResponse({ posts: postContent });
+                debugLog("Retrieved posts:", postContent);
+                sendResponse({ 
+                    posts: postContent,
+                    debug: {
+                        totalPostsFound: postContent.length,
+                        timestamp: new Date().toISOString()
+                    }
+                });
             } catch (error) {
-                console.error("Error getting posts:", error);
-                sendResponse({ posts: [], error: error.message });
+                debugError("Error getting posts:", error);
+                sendResponse({ 
+                    posts: [], 
+                    error: error.message,
+                    debug: {
+                        errorStack: error.stack,
+                        timestamp: new Date().toISOString()
+                    }
+                });
             }
-            return true; // Keep the message channel open for async response
+            return true;
         }
     }
 );
 
 function getLinkedInPosts() {
-    console.log("Starting to extract posts");
+    debugLog("Starting to extract posts");
     const posts = [];
     
-    // Updated selector to match current LinkedIn feed posts
+    // Updated selectors for modern LinkedIn feed
     const postContainers = document.querySelectorAll([
         'div.feed-shared-update-v2',
         'div.occludable-update',
-        'div[data-urn]'
+        'div[data-urn]',
+        'div.feed-shared-update-v2__content',
+        'div.update-components-actor',
+        'div.feed-shared-actor'
     ].join(', '));
     
-    console.log("Found post containers:", postContainers.length);
+    debugLog(`Found ${postContainers.length} potential post containers`);
 
-    // Add this right after the postContainers query
-    console.log("Post container HTML:", postContainers[0]?.outerHTML);
-    
+    if (postContainers.length === 0) {
+        debugError("No post containers found. DOM structure may have changed.");
+        return [];
+    }
+
     postContainers.forEach((postContainer, index) => {
-        console.log(`Processing post ${index + 1}`);
-        let postContent = "";
-        let posterName = "";
-
-        // Updated name selectors
-        const nameSelectors = [
-            'span.feed-shared-actor__name',
-            'span.update-components-actor__name',
-            'a.feed-shared-actor__container-link span',
-            'div.update-components-actor__meta-link',
-            '.actor-name',
-            'a[data-control-name="actor"] span',
-            'div.update-components-actor__title span',
-            'div.feed-shared-actor__title span',
-            'div.update-components-actor__meta a',
-            // New potential selectors
-            'div.update-components-actor__name-container a span',
-            'div.feed-shared-actor__name-container a span',
-            'div.actor-name span',
-            'div.actor__name-container a span'
-        ];
-
-        // Try each name selector
-        for (let selector of nameSelectors) {
-            console.log(`Trying name selector: ${selector}`);
-            const nameElement = postContainer.querySelector(selector);
-            console.log(`Found element:`, nameElement);
-            if (nameElement) {
-                posterName = nameElement.innerText.split('\n')[0].trim();
-                console.log(`Found name using selector "${selector}":`, posterName);
-                break;
+        try {
+            if (DEBUG.logPostHTML) {
+                debugLog(`Post ${index + 1} HTML:`, postContainer.outerHTML);
             }
-        }
 
-        if (!posterName) {
-            console.warn(`Could not find name for post ${index + 1}`);
-            posterName = "Unknown User";
-        }
-
-        // Updated content selectors
-        const contentSelectors = [
-            'div.feed-shared-update-v2__description-wrapper',
-            'div.feed-shared-text',
-            'div.feed-shared-update-v2__commentary',
-            'div.update-components-text',
-            'div.feed-shared-inline-show-more-text',
-            // New potential selectors
-            'div.update-components-text__text-view',
-            'div.feed-shared-update-v2__content',
-            'div.feed-shared-body',
-            'div.update-components-text span[dir="ltr"]',
-            'div.feed-shared-text span[dir="ltr"]',
-            'div.update-components-update-v2__commentary',
-            'div.update-components-text--fixed-space'
-        ];
-
-        // Try each content selector
-        for (let selector of contentSelectors) {
-            console.log(`Trying content selector: ${selector}`);
-            const contentElement = postContainer.querySelector(selector);
-            console.log(`Found element:`, contentElement);
-            if (contentElement) {
-                postContent = contentElement.innerText || contentElement.textContent;
-                console.log(`Found content using selector "${selector}"`);
-                break;
+            const postData = extractPostData(postContainer, index);
+            
+            if (postData.isValid) {
+                posts.push({
+                    posterName: postData.posterName,
+                    postContent: postData.postContent,
+                    timestamp: new Date().toISOString(),
+                    index: index
+                });
             }
+        } catch (error) {
+            debugError(`Error processing post ${index + 1}:`, error);
         }
-
-        if (!postContent) {
-            console.warn(`Could not find content for post ${index + 1}`);
-            postContent = "Content not available";
-        }
-
-        // Clean up the extracted text
-        postContent = cleanUpPostContent(postContent);
-        postContent = removeNameFromContent(postContent, posterName);
-
-        console.log(`Post ${index + 1} processed:`, { posterName, postContent });
-        
-        posts.push({
-            posterName: posterName,
-            postContent: postContent
-        });
     });
 
-    console.log(`Total posts processed: ${posts.length}`);
-    return posts;
+    debugLog(`Successfully extracted ${posts.length} valid posts`);
+    return posts.filter(post => post.postContent && post.postContent !== "Content not available");
+}
+
+function extractPostData(postContainer, index) {
+    const nameSelectors = [
+        'span.update-components-actor__name',
+        'span.feed-shared-actor__name',
+        'span.update-components-actor__title',
+        'a.update-components-actor__meta-link',
+        'a[data-control-name="actor_container"] span',
+        'div.update-components-actor__meta-link',
+        '.actor-name',
+        'div.feed-shared-actor__title span'
+    ];
+
+    const contentSelectors = [
+        'div.feed-shared-update-v2__description-wrapper',
+        'div.feed-shared-text-view',
+        'div.update-components-text',
+        'div.feed-shared-text',
+        'div.update-components-text__text-view',
+        'div.feed-shared-update-v2__commentary',
+        'span[dir="ltr"]',
+        'div.feed-shared-inline-show-more-text'
+    ];
+
+    let posterName = findElementContent(postContainer, nameSelectors, 'name', index);
+    let postContent = findElementContent(postContainer, contentSelectors, 'content', index);
+
+    // Clean up the extracted text
+    if (postContent) {
+        postContent = cleanUpPostContent(postContent);
+        postContent = removeNameFromContent(postContent, posterName);
+    }
+
+    return {
+        posterName: posterName || "Unknown User",
+        postContent: postContent || "Content not available",
+        isValid: Boolean(posterName && postContent && 
+                        postContent !== "Content not available")
+    };
+}
+
+function findElementContent(container, selectors, type, postIndex) {
+    for (let selector of selectors) {
+        try {
+            if (DEBUG.logSelectors) {
+                debugLog(`Trying ${type} selector on post ${postIndex + 1}:`, selector);
+            }
+            
+            const element = container.querySelector(selector);
+            if (element) {
+                const content = element.innerText || element.textContent;
+                if (content && content.trim()) {
+                    debugLog(`Found ${type} using selector "${selector}":`, content.trim());
+                    return content.trim();
+                }
+            }
+        } catch (error) {
+            debugError(`Error with selector "${selector}":`, error);
+        }
+    }
+    debugLog(`Could not find ${type} for post ${postIndex + 1}`);
+    return null;
 }
 
 function cleanUpPostContent(text) {
