@@ -16,16 +16,17 @@ function sendMessageToContentScript(tabId) {
         } else {
             console.error("Background script - No response or error from content script.");
             currentPostContent = "Could not retrieve post content.";
-        }
+        }        
+        // Create the popup after receiving the response from the content script
         chrome.tabs.create({
             url: chrome.runtime.getURL("popup.html")
         }, function (tab) {
-            popupTabId = tab.id;
+            popupTabId = tab.id;            
             // Check if the popup is ready before sending the message
             if (popupReady) {
                 console.log("Background script - Popup is ready, sending message to popup");
                 sendMessageToPopup();
-            }
+            }            
         });
     });
 }
