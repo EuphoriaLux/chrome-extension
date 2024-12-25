@@ -20,10 +20,8 @@ function sendMessageToContentScript(tabId) {
         // Create the popup after receiving the response from the content script
         chrome.tabs.create({
             url: chrome.runtime.getURL("popup.html"),
-        }, function (tab) {
-            popupTabId = tab.id;            
-            if (popupReady) {
-                sendMessageToPopup();
+        }, function (tab) {            
+            popupTabId = tab.id;
             }
         });
     });
@@ -66,7 +64,7 @@ chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
                 case "popupReady":
                     console.log("Background script - Received popup ready message");
                     popupReady = true;
-                    if (currentPostContent) {
+                    if (currentPostContent && popupTabId) {
                         sendMessageToPopup();
                     }
                     break;
