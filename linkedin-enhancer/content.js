@@ -51,6 +51,9 @@ function getLinkedInPosts() {
 
         // Clean up the extracted text
         postContent = cleanUpPostContent(postContent);
+        
+        // Remove the poster's name from the post content
+        postContent = removeNameFromContent(postContent, posterName);
 
         posts.push({
             posterName: posterName,
@@ -70,4 +73,14 @@ function cleanUpPostContent(text) {
         return cleanedText;
     }
     return "";
+}
+
+function removeNameFromContent(content, name) {
+    if (!content || !name) {
+        return content;
+    }
+    // Create a regex to match the name, with word boundaries to avoid partial matches
+    const nameRegex = new RegExp(`\\b${name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'gi');
+    // Replace all occurrences of the name with an empty string
+    return content.replace(nameRegex, '').trim();
 }
