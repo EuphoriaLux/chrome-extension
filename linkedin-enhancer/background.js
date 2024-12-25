@@ -2,16 +2,16 @@ console.log("Background script loaded");
 
 let currentPostContent = "Could not retrieve post content.";
 let popupTabId = null
-chrome.action.onClicked.addListener((tab) => {
+chrome.action.onClicked.addListener(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
         const activeTab = tabs[0];
 
         function sendMessageToContentScript(tabId) {
             chrome.tabs.sendMessage(tabId, { action: "getPostContent" }, function (response) {
-                if (response && response.postContent) {
-                    console.log("Background script - Received post content:", response.postContent);
-                    currentPostContent = response.postContent;
-                }
+                if (response && response.posts) {
+                    console.log("Background script - Received posts:", response.posts);
+                    currentPostContent = response.posts;
+                };
                 chrome.windows.create({
                     url: chrome.runtime.getURL("popup.html"),
                     type: "normal",
@@ -21,7 +21,7 @@ chrome.action.onClicked.addListener((tab) => {
                     popupTabId = newWindow.tabs[0].id;
                     function sendMessageToPopup(tabId) {
                         console.log("Background script - Sending post content to popup:", currentPostContent);
-                        chrome.tabs.sendMessage(tabId, {
+                        chrome.tabs.sendMessage(tabId, { 
                             action: "setPostContent",
                             postContent: currentPostContent,
                         });
