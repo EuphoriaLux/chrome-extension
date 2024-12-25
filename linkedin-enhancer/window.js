@@ -13,11 +13,18 @@ chrome.runtime.onMessage.addListener(
             if (Array.isArray(posts)) {
                 posts.forEach(post => {
                     const postDiv = document.createElement('div');
-                    postDiv.innerHTML = `<h3>${post.posterName}</h3>${post.postContent}`;
+                    const nameElement = document.createElement('h3');
+                    nameElement.textContent = post.posterName;
+                    postDiv.appendChild(nameElement);
+
+                    const contentElement = document.createElement('div');
+                    contentElement.innerHTML = post.postContent;
+                    contentElement.style.whiteSpace = 'pre-line';
+                    postDiv.appendChild(contentElement);
+
                     postDiv.style.padding = '10px';
                     postDiv.style.border = '1px solid #ccc';
                     postDiv.style.margin = '10px';
-                    postDiv.style.whiteSpace = 'pre-line';
                     postContainer.appendChild(postDiv);
                 });
             } else {
