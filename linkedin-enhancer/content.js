@@ -23,7 +23,7 @@ function getLinkedInPosts() {
         let postContent = "";
         let posterName = "";
         // Extract poster name
-        const nameElement = postContainer.querySelector('.update-components-actor__title > span > span');
+        const nameElement = postContainer.querySelector('.feed-shared-actor__name');
 
         if (nameElement) {
             posterName = nameElement.innerText.trim();

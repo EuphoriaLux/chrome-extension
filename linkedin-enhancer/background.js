@@ -21,12 +21,14 @@ function sendMessageToContentScript(tabId) {
         chrome.tabs.create({
             url: chrome.runtime.getURL("popup.html")
         }, function (tab) {
-            popupTabId = tab.id;            
+            popupTabId = tab.id;
             // Check if the popup is ready before sending the message
-            if (popupReady) {
-                console.log("Background script - Popup is ready, sending message to popup");
-                sendMessageToPopup();
-            }            
+            setTimeout(() => {
+                if (popupReady) {
+                    console.log("Background script - Popup is ready, sending message to popup");
+                    sendMessageToPopup();
+                }
+            }, 100); // Add a 100ms delay
         });
     });
 }
