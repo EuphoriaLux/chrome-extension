@@ -9,6 +9,7 @@ chrome.action.onClicked.addListener((tab) => {
         function sendMessageToContentScript(tabId) {
             chrome.tabs.sendMessage(tabId, { action: "getPostContent" }, function (response) {
                 if (response && response.postContent) {
+                    console.log("Background script - Received post content:", response.postContent);
                     currentPostContent = response.postContent;
                 }
                 chrome.windows.create({
@@ -19,6 +20,7 @@ chrome.action.onClicked.addListener((tab) => {
                 }, function (newWindow) {
                     popupTabId = newWindow.tabs[0].id;
                     function sendMessageToPopup(tabId) {
+                        console.log("Background script - Sending post content to popup:", currentPostContent);
                         chrome.tabs.sendMessage(tabId, {
                             action: "setPostContent",
                             postContent: currentPostContent,

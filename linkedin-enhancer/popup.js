@@ -3,6 +3,7 @@ console.log("Popup script loaded");
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
         if (request.action === "setPostContent") {
+            console.log("Popup script - Received post content:", request.postContent);
             const postContent = request.postContent;
             const contentDiv = document.createElement('div')
             contentDiv.innerHTML = postContent;
