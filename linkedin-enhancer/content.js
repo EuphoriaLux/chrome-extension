@@ -31,6 +31,9 @@ function getLinkedInPosts() {
     ].join(', '));
     
     console.log("Found post containers:", postContainers.length);
+
+    // Add this right after the postContainers query
+    console.log("Post container HTML:", postContainers[0]?.outerHTML);
     
     postContainers.forEach((postContainer, index) => {
         console.log(`Processing post ${index + 1}`);
@@ -43,13 +46,23 @@ function getLinkedInPosts() {
             'span.update-components-actor__name',
             'a.feed-shared-actor__container-link span',
             'div.update-components-actor__meta-link',
-            '.actor-name', // Generic actor name class
-            'a[data-control-name="actor"] span'
+            '.actor-name',
+            'a[data-control-name="actor"] span',
+            'div.update-components-actor__title span',
+            'div.feed-shared-actor__title span',
+            'div.update-components-actor__meta a',
+            // New potential selectors
+            'div.update-components-actor__name-container a span',
+            'div.feed-shared-actor__name-container a span',
+            'div.actor-name span',
+            'div.actor__name-container a span'
         ];
 
         // Try each name selector
         for (let selector of nameSelectors) {
+            console.log(`Trying name selector: ${selector}`);
             const nameElement = postContainer.querySelector(selector);
+            console.log(`Found element:`, nameElement);
             if (nameElement) {
                 posterName = nameElement.innerText.split('\n')[0].trim();
                 console.log(`Found name using selector "${selector}":`, posterName);
@@ -68,13 +81,22 @@ function getLinkedInPosts() {
             'div.feed-shared-text',
             'div.feed-shared-update-v2__commentary',
             'div.update-components-text',
-            'span[dir="ltr"]',
-            'div.feed-shared-inline-show-more-text'
+            'div.feed-shared-inline-show-more-text',
+            // New potential selectors
+            'div.update-components-text__text-view',
+            'div.feed-shared-update-v2__content',
+            'div.feed-shared-body',
+            'div.update-components-text span[dir="ltr"]',
+            'div.feed-shared-text span[dir="ltr"]',
+            'div.update-components-update-v2__commentary',
+            'div.update-components-text--fixed-space'
         ];
 
         // Try each content selector
         for (let selector of contentSelectors) {
+            console.log(`Trying content selector: ${selector}`);
             const contentElement = postContainer.querySelector(selector);
+            console.log(`Found element:`, contentElement);
             if (contentElement) {
                 postContent = contentElement.innerText || contentElement.textContent;
                 console.log(`Found content using selector "${selector}"`);
