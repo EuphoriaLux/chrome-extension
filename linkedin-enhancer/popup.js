@@ -11,6 +11,9 @@ chrome.runtime.onMessage.addListener(
             console.log("Popup script - Received posts:", request.postContent);
             const posts = request.postContent;
 
+            // Clear previous content
+            document.body.innerHTML = '<h1>LinkedIn Enhancer</h1><p>This is the popup.</p>';
+
             if (Array.isArray(posts)) {
                 posts.forEach(post => {
                     const postDiv = document.createElement('div');
