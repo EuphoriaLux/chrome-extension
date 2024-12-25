@@ -3,9 +3,14 @@ console.log("Content script loaded");
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
         if (request.action === "getPostContent") {
-            const postContent = getLinkedInPostContent();
-            console.log("Content script - Post content:", postContent);
-            sendResponse({postContent: postContent});
+            try {
+                const postContent = getLinkedInPosts();
+                console.log("Content script - Post content:", postContent);
+                sendResponse({ posts: postContent });
+            } catch (error) {
+                console.error("Content script - Error getting post content:", error);
+                sendResponse({ error: "Could not retrieve post content." });
+            }
         }
     }
 );

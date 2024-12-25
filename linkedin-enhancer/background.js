@@ -10,11 +10,16 @@ chrome.action.onClicked.addListener(() => {
         function sendMessageToContentScript(tabId) {
             chrome.tabs.sendMessage(tabId, { action: "getPostContent" }, function (response) {
                 if (response && response.posts) {
-                    console.log("Background script - Received posts:", response.posts);
+                    console.log("Background script - Received posts from content script:", response.posts);
                     currentPostContent = response.posts;
-                };
+                } else if (response && response.error) {
+                    console.error("Background script - Error from content script:", response.error);
+                    currentPostContent = "Could not retrieve post content.";
+                } else {
+                    console.error("Background script - No response or error from content script.");
+                    currentPostContent = "Could not retrieve post content.";
+                }
                 chrome.windows.create({
-                    url: chrome.runtime.getURL("popup.html"),
                     type: "normal",
                     width: 800,
                     height: 600
@@ -22,6 +27,7 @@ chrome.action.onClicked.addListener(() => {
                     popupTabId = newWindow.tabs[0].id;
                     // Check if the popup is ready before sending the message
                     if (popupReady) {
+                        console.log("Background script - Popup is ready, sending message to popup");
                         sendMessageToPopup();
                     }
                 });
