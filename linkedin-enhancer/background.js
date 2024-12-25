@@ -49,12 +49,15 @@ chrome.action.onClicked.addListener(() => {
         }
         
         chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-            if (request.action === "popupReady") {
-                console.log("Background script - Received popup ready message");
-                popupReady = true;
-                if (popupTabId) {
-                    sendMessageToPopup();
+            switch (request.action) {
+                case "popupReady":
+                    console.log("Background script - Received popup ready message");
+                    popupReady = true;
+                    if (popupTabId) {
+                        sendMessageToPopup();
+                    }
+                    break;
                 }
-            }
         });
+    });
 });
