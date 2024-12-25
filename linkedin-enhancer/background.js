@@ -10,29 +10,28 @@ function handleWindowMessage(newWindow, response) {
     // Store the window ID for later use
     const windowId = newWindow.id;
     
-    chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo, tab) {
-        console.log("Tab updated:", { 
-            tabId, 
-            changeInfo, 
-            windowId: tab.windowId,
-            expectedWindowId: windowId 
-        });
-        
-        // Check if this update is for a tab in our popup window
-        if (tab.windowId === windowId && changeInfo.status === 'complete') {
-            // Ensure we're not trying to inject into the extensions page
-            if (!tab.url.startsWith('chrome://')) {
-                console.log("Sending posts to window:", response?.posts);
-                
-                chrome.tabs.sendMessage(tabId, {
-                    action: "setPostContent",
-                    postContent: response?.posts || []
-                }).catch(error => {
-                    console.error("Error sending message:", error);
-                });
-            }
+    // Get the first tab in the new window
+    chrome.tabs.query({windowId: windowId}, function(tabs) {
+        if (tabs && tabs[0]) {
+            const tabId = tabs[0].id;
             
-            chrome.tabs.onUpdated.removeListener(listener);
+            // Wait for the tab to be ready
+            chrome.tabs.onUpdated.addListener(function listener(updatedTabId, changeInfo, tab) {
+                if (updatedTabId === tabId && changeInfo.status === 'complete') {
+                    console.log("Sending posts to window:", response?.posts);
+                    
+                    chrome.tabs.sendMessage(tabId, {
+                        action: "setPostContent",
+                        postContent: response?.posts || [],
+                        debug: response?.debug || {}
+                    }).catch(error => {
+                        console.error("Error sending message:", error);
+                    });
+                    
+                    // Remove the listener after sending the message
+                    chrome.tabs.onUpdated.removeListener(listener);
+                }
+            });
         }
     });
 }

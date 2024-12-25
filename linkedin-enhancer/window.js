@@ -1,5 +1,13 @@
 console.log("Window script loaded");
 
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("Window DOM loaded");
+    const loadingIndicator = document.getElementById('loading-indicator');
+    if (loadingIndicator) {
+        loadingIndicator.style.display = 'block';
+    }
+});
+
 // Initialize debug elements
 const debugInfo = {
     messageCount: document.getElementById('message-count'),
@@ -20,21 +28,23 @@ chrome.runtime.onMessage.addListener(
             debugInfo.lastMessage.textContent = `Last message: ${JSON.stringify(request)}`;
         }
 
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const statusMessage = document.getElementById('status-message');
+
         if (request.action === "setPostContent") {
-            // Hide loading indicator
-            const loadingIndicator = document.getElementById('loading-indicator');
             if (loadingIndicator) {
                 loadingIndicator.style.display = 'none';
             }
 
-            // Show debug info if available
             if (request.debug) {
                 showDebugInfo(request.debug);
             }
 
-            // Handle posts
-            if (!request.postContent || request.postContent.length === 0) {
-                document.getElementById('status-message').textContent = "No posts received";
+            if (!request.postContent || !Array.isArray(request.postContent) || request.postContent.length === 0) {
+                console.log("No posts received in message");
+                if (statusMessage) {
+                    statusMessage.textContent = "No posts received";
+                }
                 return;
             }
 
@@ -48,14 +58,32 @@ function displayPosts(posts) {
     
     const postContainer = document.getElementById('post-container');
     const postTemplate = document.getElementById('post-template');
+    const statusMessage = document.getElementById('status-message');
     
     if (!postContainer || !postTemplate) {
-        console.error("Required elements not found!");
+        console.error("Required elements not found!", {
+            postContainer: !!postContainer,
+            postTemplate: !!postTemplate
+        });
+        if (statusMessage) {
+            statusMessage.textContent = "Error: Required elements not found";
+        }
+        return;
+    }
+
+    if (!Array.isArray(posts) || posts.length === 0) {
+        console.log("No posts to display");
+        if (statusMessage) {
+            statusMessage.textContent = "No posts found";
+        }
         return;
     }
 
     // Clear existing posts
     postContainer.innerHTML = '';
+    if (statusMessage) {
+        statusMessage.textContent = `Displaying ${posts.length} posts`;
+    }
 
     posts.forEach((post, index) => {
         try {
