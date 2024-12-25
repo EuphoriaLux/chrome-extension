@@ -20,12 +20,13 @@ function sendMessageToContentScript(tabId) {
         // Create the popup after receiving the response from the content script
         chrome.tabs.create({
             url: chrome.runtime.getURL("popup.html"),
-        }, function (tab) {            
+        }, function (tab) {
             popupTabId = tab.id;
+            sendMessageToPopup();
             }
         });
     });
-}
+    }
 
 chrome.action.onClicked.addListener(function() {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
