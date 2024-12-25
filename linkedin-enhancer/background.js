@@ -20,19 +20,10 @@ chrome.action.onClicked.addListener(() => {
                     height: 600
                 }, function (newWindow) {
                     popupTabId = newWindow.tabs[0].id;
-                    function sendMessageToPopup(tabId) {
-                        console.log("Background script - Sending post content to popup:", currentPostContent);
-                        chrome.tabs.sendMessage(tabId, { 
-                            action: "setPostContent",
-                            postContent: currentPostContent,
-                        });
+                    // Check if the popup is ready before sending the message
+                    if (popupReady) {
+                        sendMessageToPopup();
                     }
-                    chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
-                        if (tabId === popupTabId && changeInfo.status === "complete") {
-                            sendMessageToPopup(tabId);
-                            chrome.tabs.onUpdated.removeListener(listener);
-                        }
-                    });
                 });
             });
         }
