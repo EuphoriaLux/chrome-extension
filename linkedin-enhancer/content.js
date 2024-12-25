@@ -24,9 +24,11 @@ function getLinkedInPosts() {
         let posterName = "";
 
         // Extract poster name
-        const nameElement = postContainer.querySelector('.feed-shared-actor__name');
+        const nameElement = postContainer.querySelector('.feed-shared-actor__name, .update-components-actor__name');
         if (nameElement) {
             posterName = nameElement.innerText.trim();
+        } else {
+            console.error("Content script - Could not find poster name for this post.");
         }
 
         // Attempt to find the main post content container for text-based posts
