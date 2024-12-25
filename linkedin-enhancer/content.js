@@ -33,6 +33,8 @@ if (window.linkedInEnhancerInitialized) {
                     debugLog("Getting LinkedIn posts...");
                     const postContent = getLinkedInPosts();
                     debugLog("Retrieved posts:", postContent);
+                    
+                    // Send response immediately
                     sendResponse({ 
                         posts: postContent,
                         debug: {
@@ -51,8 +53,9 @@ if (window.linkedInEnhancerInitialized) {
                         }
                     });
                 }
-                return true;
             }
+            // Return false since we're sending the response synchronously
+            return false;
         }
     );
 

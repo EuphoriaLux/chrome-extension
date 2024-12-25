@@ -13,7 +13,6 @@ chrome.action.onClicked.addListener(async (tab) => {
     }
 
     try {
-        // Store the original tab ID
         const originalTabId = tab.id;
 
         // Create the window first
@@ -31,29 +30,46 @@ chrome.action.onClicked.addListener(async (tab) => {
         });
         console.log("Content script injected successfully");
 
-        // Wait for both the content script and window to be ready
-        setTimeout(async () => {
-            try {
-                console.log("Sending message to content script to get posts...");
-                const response = await chrome.tabs.sendMessage(originalTabId, {action: "getPostContent"});
-                console.log("Received response from content script:", response);
+        // Increase timeout and add error handling
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        try {
+            console.log("Sending message to content script to get posts...");
+            const response = await new Promise((resolve, reject) => {
+                chrome.tabs.sendMessage(originalTabId, {action: "getPostContent"}, response => {
+                    if (chrome.runtime.lastError) {
+                        reject(chrome.runtime.lastError);
+                    } else {
+                        resolve(response);
+                    }
+                });
+            });
+
+            console.log("Received response from content script:", response);
+            
+            // Get the tab in the new window
+            const windowTabs = await chrome.tabs.query({windowId: newWindow.id});
+            if (windowTabs && windowTabs[0]) {
+                const popupTabId = windowTabs[0].id;
                 
-                // Get the tab in the new window
-                const windowTabs = await chrome.tabs.query({windowId: newWindow.id});
-                if (windowTabs && windowTabs[0]) {
-                    const popupTabId = windowTabs[0].id;
-                    
-                    // Send the posts to the popup window
-                    await chrome.tabs.sendMessage(popupTabId, {
+                // Send the posts to the popup window
+                await new Promise((resolve, reject) => {
+                    chrome.tabs.sendMessage(popupTabId, {
                         action: "setPostContent",
                         postContent: response?.posts || [],
                         debug: response?.debug || {}
+                    }, response => {
+                        if (chrome.runtime.lastError) {
+                            reject(chrome.runtime.lastError);
+                        } else {
+                            resolve(response);
+                        }
                     });
-                }
-            } catch (error) {
-                console.error("Error in message handling:", error);
+                });
             }
-        }, 2000);
+        } catch (error) {
+            console.error("Error in message handling:", error);
+        }
 
     } catch (error) {
         console.error("Error in click handler:", error);

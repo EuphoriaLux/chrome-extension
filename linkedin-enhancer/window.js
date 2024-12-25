@@ -45,12 +45,14 @@ chrome.runtime.onMessage.addListener(
                 if (statusMessage) {
                     statusMessage.textContent = "No posts received";
                 }
-                return true;
+                sendResponse({ status: "no_posts" });
+                return false;
             }
 
             displayPosts(request.postContent);
+            sendResponse({ status: "success" });
         }
-        return true;
+        return false;
     }
 );
 
