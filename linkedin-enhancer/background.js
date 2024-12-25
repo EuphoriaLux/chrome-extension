@@ -2,6 +2,7 @@ console.log("Background script loaded");
 
 let currentPostContent = "Could not retrieve post content.";
 let popupTabId = null;
+let contentTabId = null;
 let popupReady = false;
 chrome.action.onClicked.addListener(function() {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
@@ -9,7 +10,7 @@ chrome.action.onClicked.addListener(function() {
 
         function sendMessageToContentScript(tabId) {
             chrome.tabs.sendMessage(tabId, { action: "getPostContent" }, function (response) {
-                if (response && response.posts) {
+               if (response && response.posts) {
                     console.log("Background script - Received posts from content script:", response.posts);
                     currentPostContent = response.posts;
                 } else if (response && response.error) {
@@ -32,18 +33,26 @@ chrome.action.onClicked.addListener(function() {
             });
         }
 
-        // Check if the tab is already loaded
-        if (activeTab.status === "complete") {
+        contentTabId = activeTab.id;
+        // Check if the tab is already loaded, if not, wait for the tab to load
+        if (activeTab.status !== "complete") {
+            console.log("Background script - Tab not complete, waiting for update");
+            return;
+        }
+        sendMessageToContentScript(activeTab.id);
+    });
+});
+
+chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
+    if (tabId === contentTabId && changeInfo.status === "complete") {
+        console.log("Background script - Tab updated, sending message to content script");
+        chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+            const activeTab = tabs[0];
             sendMessageToContentScript(activeTab.id);
-        } else {
-            // If not, wait for the tab to load
-            chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
-                if (tabId === activeTab.id && changeInfo.status === "complete") {
-                    sendMessageToContentScript(tabId);
-                    chrome.tabs.onUpdated.removeListener(listener);
-                }
-            });
-            }
+        });
+        chrome.tabs.onUpdated.removeListener(listener);
+    }
+});
         function sendMessageToPopup() {
             console.log("Background script - Sending post content to popup:", currentPostContent);
             chrome.tabs.sendMessage(popupTabId, {
@@ -63,5 +72,3 @@ chrome.action.onClicked.addListener(function() {
                     break;
                 }
         });
-    });
-});
