@@ -1,6 +1,7 @@
 console.log("Background script loaded");
 
 let currentPostContent = "Could not retrieve post content.";
+let popupTabId = null;
 
 chrome.action.onClicked.addListener((tab) => {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
@@ -16,10 +17,11 @@ chrome.action.onClicked.addListener((tab) => {
                     type: "normal",
                     width: 800,
                     height: 600
-                }, function (newWindow) {
-                    chrome.runtime.sendMessage({
+                }, function (newWindow) {                    
+                    popupTabId = newWindow.tabs[0].id;
+                    chrome.tabs.sendMessage(popupTabId, {
                         action: "setPostContent",
-                        postContent: currentPostContent
+                        postContent: currentPostContent,
                     });
                 });
             });
