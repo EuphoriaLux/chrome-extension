@@ -1,30 +1,17 @@
 console.log("Window script loaded");
 
-const statusMessage = document.getElementById('status-message');
-const postTemplate = document.getElementById('post-template');
-const loadingIndicator = document.getElementById('loading-indicator');
-
-let messageCount = 0;
+// Initialize debug elements
 const debugInfo = {
     messageCount: document.getElementById('message-count'),
     lastMessage: document.getElementById('last-message')
 };
 
-function showDebugInfo(debugData) {
-    const debugContainer = document.getElementById('debug-info');
-    if (debugData && debugContainer) {
-        const debugHTML = `
-            <div>Debug Information:</div>
-            <div>Total Posts Found: ${debugData.totalPostsFound || 0}</div>
-            <div>Timestamp: ${debugData.timestamp || 'N/A'}</div>
-            ${debugData.errorStack ? `<div>Error: ${debugData.errorStack}</div>` : ''}
-        `;
-        debugContainer.innerHTML = debugHTML;
-    }
-}
+let messageCount = 0;
 
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
+        console.log("Window received message:", request);
+        
         messageCount++;
         if (debugInfo.messageCount) {
             debugInfo.messageCount.textContent = `Messages received: ${messageCount}`;
@@ -32,68 +19,57 @@ chrome.runtime.onMessage.addListener(
         if (debugInfo.lastMessage) {
             debugInfo.lastMessage.textContent = `Last message: ${JSON.stringify(request)}`;
         }
-        console.log("Window received message:", {
-            request: request,
-            sender: sender,
-            action: request?.action,
-            postContent: request?.postContent
-        });
-        
+
         if (request.action === "setPostContent") {
+            // Hide loading indicator
+            const loadingIndicator = document.getElementById('loading-indicator');
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+            }
+
+            // Show debug info if available
             if (request.debug) {
                 showDebugInfo(request.debug);
             }
-            if (!request.postContent) {
-                console.error("No post content received");
+
+            // Handle posts
+            if (!request.postContent || request.postContent.length === 0) {
                 document.getElementById('status-message').textContent = "No posts received";
                 return;
             }
-            console.log("About to handle post content:", request.postContent);
-            handlePostContent(request.postContent);
-        } else {
-            console.log("Received message with unexpected action:", request.action);
+
+            displayPosts(request.postContent);
         }
     }
 );
 
-function handlePostContent(posts) {
-    console.log("Starting to handle posts:", posts);
+function displayPosts(posts) {
+    console.log("Displaying posts:", posts);
     
-    const loadingIndicator = document.getElementById('loading-indicator');
-    const statusMessage = document.getElementById('status-message');
     const postContainer = document.getElementById('post-container');
+    const postTemplate = document.getElementById('post-template');
     
-    // Hide loading indicator
-    if (loadingIndicator) {
-        loadingIndicator.style.display = 'none';
-    }
-    
-    if (!postContainer) {
-        console.error("Post container not found!");
+    if (!postContainer || !postTemplate) {
+        console.error("Required elements not found!");
         return;
     }
-    
+
+    // Clear existing posts
     postContainer.innerHTML = '';
 
-    if (!posts || posts.length === 0) {
-        console.log("No posts to display");
-        statusMessage.textContent = "No posts found or error occurred";
-        return;
-    }
-
-    try {
-        posts.forEach((post, index) => {
-            console.log(`Creating element for post ${index}:`, post);
+    posts.forEach((post, index) => {
+        try {
+            // Clone the template
             const postElement = document.importNode(postTemplate.content, true);
             
+            // Clean up the name (remove duplicate lines and extra whitespace)
+            const cleanName = post.posterName.split('\n')[0].trim();
+            
             // Set the content
-            const posterNameElement = postElement.querySelector('.poster-name');
-            const postContentElement = postElement.querySelector('.post-content');
+            postElement.querySelector('.poster-name').textContent = cleanName;
+            postElement.querySelector('.post-content').textContent = post.postContent;
             
-            if (posterNameElement) posterNameElement.textContent = post.posterName;
-            if (postContentElement) postContentElement.textContent = post.postContent;
-            
-            // Setup buttons
+            // Add buttons and their event listeners
             const generateBtn = postElement.querySelector('.generate-comment-btn');
             const generatedComment = postElement.querySelector('.generated-comment');
             const commentContent = postElement.querySelector('.comment-content');
@@ -104,9 +80,9 @@ function handlePostContent(posts) {
                     generateBtn.disabled = true;
                     generateBtn.textContent = 'Generating...';
                     
-                    // Simulate comment generation (placeholder)
+                    // Simulate comment generation (replace with actual API call later)
                     setTimeout(() => {
-                        const placeholderComment = `This is a sample comment for the post by ${post.posterName}`;
+                        const placeholderComment = `This is a sample comment for the post by ${cleanName}`;
                         commentContent.textContent = placeholderComment;
                         generatedComment.classList.remove('hidden');
                         generateBtn.disabled = false;
@@ -131,11 +107,21 @@ function handlePostContent(posts) {
             }
             
             postContainer.appendChild(postElement);
-        });
-        
-        console.log("All posts rendered successfully");
-    } catch (error) {
-        console.error("Error rendering posts:", error);
-        statusMessage.textContent = "Error rendering posts";
+            console.log(`Successfully added post ${index + 1}`);
+        } catch (error) {
+            console.error(`Error displaying post ${index}:`, error);
+        }
+    });
+}
+
+function showDebugInfo(debugData) {
+    const debugContainer = document.getElementById('debug-info');
+    if (debugData && debugContainer) {
+        debugContainer.innerHTML = `
+            <div>Debug Information:</div>
+            <div>Total Posts Found: ${debugData.totalPostsFound || 0}</div>
+            <div>Timestamp: ${debugData.timestamp || 'N/A'}</div>
+            ${debugData.errorStack ? `<div>Error: ${debugData.errorStack}</div>` : ''}
+        `;
     }
 }
