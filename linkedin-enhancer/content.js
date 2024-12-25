@@ -22,61 +22,84 @@ chrome.runtime.onMessage.addListener(
 function getLinkedInPosts() {
     console.log("Starting to extract posts");
     const posts = [];
-    const postContainers = document.querySelectorAll('.feed-shared-update-v2');
+    
+    // Updated selector to match current LinkedIn feed posts
+    const postContainers = document.querySelectorAll([
+        'div.feed-shared-update-v2',
+        'div.occludable-update',
+        'div[data-urn]'
+    ].join(', '));
+    
     console.log("Found post containers:", postContainers.length);
     
-    postContainers.forEach(postContainer => {
+    postContainers.forEach((postContainer, index) => {
+        console.log(`Processing post ${index + 1}`);
         let postContent = "";
         let posterName = "";
 
-        // Simplified name extraction
-        const nameElement = postContainer.querySelector([
-            '.update-components-actor__title span[dir="ltr"]',
-            '.feed-shared-actor__title span[dir="ltr"]',
-            '.update-components-actor__name',
-            '.feed-shared-actor__name',
-            '.update-components-actor__meta-link'
-        ].join(', '));
+        // Updated name selectors
+        const nameSelectors = [
+            'span.feed-shared-actor__name',
+            'span.update-components-actor__name',
+            'a.feed-shared-actor__container-link span',
+            'div.update-components-actor__meta-link',
+            '.actor-name', // Generic actor name class
+            'a[data-control-name="actor"] span'
+        ];
 
-        if (nameElement) {
-            // Take only the first line of text and clean it
-            posterName = nameElement.innerText.split('\n')[0].trim();
-        } else {
-            // Fallback method
-            const nameLink = postContainer.querySelector('a[data-tracking-control-name="feed_shared-actor-name"]');
-            if (nameLink) {
-                posterName = nameLink.innerText.split('\n')[0].trim();
-            } else {
-                console.warn("Content script - Could not find name using primary or fallback selectors");
-                posterName = "Unknown User";
+        // Try each name selector
+        for (let selector of nameSelectors) {
+            const nameElement = postContainer.querySelector(selector);
+            if (nameElement) {
+                posterName = nameElement.innerText.split('\n')[0].trim();
+                console.log(`Found name using selector "${selector}":`, posterName);
+                break;
             }
         }
 
-        // Updated selectors for post content
-        const textContentElement = postContainer.querySelector('.update-components-text, .feed-shared-update-v2__commentary');
-        const articleContentElement = postContainer.querySelector('[data-text-entity-list-container="true"]');
+        if (!posterName) {
+            console.warn(`Could not find name for post ${index + 1}`);
+            posterName = "Unknown User";
+        }
 
-        if (textContentElement) {
-            postContent = textContentElement.innerHTML;
-        } else if (articleContentElement) {
-            postContent = articleContentElement.innerHTML;
-        } else {
-            console.warn("Content script - Could not find content using any selectors.");
-            postContent = "Content not available.";
+        // Updated content selectors
+        const contentSelectors = [
+            'div.feed-shared-update-v2__description-wrapper',
+            'div.feed-shared-text',
+            'div.feed-shared-update-v2__commentary',
+            'div.update-components-text',
+            'span[dir="ltr"]',
+            'div.feed-shared-inline-show-more-text'
+        ];
+
+        // Try each content selector
+        for (let selector of contentSelectors) {
+            const contentElement = postContainer.querySelector(selector);
+            if (contentElement) {
+                postContent = contentElement.innerText || contentElement.textContent;
+                console.log(`Found content using selector "${selector}"`);
+                break;
+            }
+        }
+
+        if (!postContent) {
+            console.warn(`Could not find content for post ${index + 1}`);
+            postContent = "Content not available";
         }
 
         // Clean up the extracted text
         postContent = cleanUpPostContent(postContent);
-
-        // Remove the poster's name from the post content
         postContent = removeNameFromContent(postContent, posterName);
 
+        console.log(`Post ${index + 1} processed:`, { posterName, postContent });
+        
         posts.push({
             posterName: posterName,
             postContent: postContent
         });
     });
 
+    console.log(`Total posts processed: ${posts.length}`);
     return posts;
 }
 
