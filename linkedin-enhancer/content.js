@@ -16,52 +16,61 @@ chrome.runtime.onMessage.addListener(
 );
 
 function getLinkedInPosts() {
-    const posts = [];
-    const postContainers = document.querySelectorAll('.feed-shared-update-v2');
+    try {
+        const posts = [];
+        const postContainers = document.querySelectorAll('.feed-shared-update-v2');
 
-    postContainers.forEach(postContainer => {
-        let postContent = "";
-        let posterName = "";
-        // Extract poster name
-        const nameElements = postContainer.querySelectorAll('.update-components-actor__title > span > span[aria-hidden="true"], .feed-shared-actor__name');
-
-        if (nameElements.length > 0) {
-            posterName = nameElements[0].innerText.trim();
-        } else {
-             console.error("Content script - Could not find any heading elements for this post.");
+        if (postContainers.length === 0) {
+            throw new Error("No posts found on the page");
         }
 
-        // Attempt to find the main post content container for text-based posts
-        const textPostContainer = postContainer.querySelector('.update-components-text');
+        postContainers.forEach(postContainer => {
+            let postContent = "";
+            let posterName = "";
+            // Extract poster name
+            const nameElements = postContainer.querySelectorAll('.update-components-actor__title > span > span[aria-hidden="true"], .feed-shared-actor__name');
 
-        if (textPostContainer) {
-            // Extract the text content from the text post container
-            postContent = textPostContainer.innerHTML;
-        } else {
-            // If the text post container is not found, try to find a more specific post container for article-based posts
-            const articleContainer = postContainer.querySelector('article div[data-test-text-entity-container]');
-            if (articleContainer) {
-                // Extract the text content from the article container
-                postContent = articleContainer.innerHTML;
+            if (nameElements.length > 0) {
+                posterName = nameElements[0].innerText.trim();
             } else {
-                console.error("Could not find post content using any selectors.");
-                postContent = "Could not find post content.";
+                console.error("Content script - Could not find any heading elements for this post.");
             }
-        }
 
-        // Clean up the extracted text
-        postContent = cleanUpPostContent(postContent);
+            // Attempt to find the main post content container for text-based posts
+            const textPostContainer = postContainer.querySelector('.update-components-text');
+
+            if (textPostContainer) {
+                // Extract the text content from the text post container
+                postContent = textPostContainer.innerHTML;
+            } else {
+                // If the text post container is not found, try to find a more specific post container for article-based posts
+                const articleContainer = postContainer.querySelector('article div[data-test-text-entity-container]');
+                if (articleContainer) {
+                    // Extract the text content from the article container
+                    postContent = articleContainer.innerHTML;
+                } else {
+                    console.error("Could not find post content using any selectors.");
+                    postContent = "Could not find post content.";
+                }
+            }
+
+            // Clean up the extracted text
+            postContent = cleanUpPostContent(postContent);
         
-        // Remove the poster's name from the post content
-        postContent = removeNameFromContent(postContent, posterName);
+            // Remove the poster's name from the post content
+            postContent = removeNameFromContent(postContent, posterName);
 
-        posts.push({
-            posterName: posterName,
-            postContent: postContent
+            posts.push({
+                posterName: posterName,
+                postContent: postContent
+            });
         });
-    });
 
-    return posts;
+        return posts;
+    } catch (error) {
+        console.error("Error in getLinkedInPosts:", error);
+        return [];
+    }
 }
 
 function cleanUpPostContent(text) {

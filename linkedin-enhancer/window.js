@@ -1,10 +1,18 @@
 console.log("Window script loaded");
 
+const statusMessage = document.getElementById('status-message');
+
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
         if (request.action === "setPostContent") {
-            console.log("Window script - Received posts:", request.postContent);
+            statusMessage.textContent = '';
             const posts = request.postContent;
+
+            if (!posts || posts.length === 0) {
+                statusMessage.textContent = "No posts found or error occurred";
+                return;
+            }
+            
             const postContainer = document.getElementById('post-container');
 
             // Clear previous content
