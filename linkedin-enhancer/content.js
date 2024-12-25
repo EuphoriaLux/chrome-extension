@@ -101,8 +101,30 @@ function removeNameFromContent(content, name) {
     if (!content || !name) {
         return content;
     }
-    // Create a regex to match the name, with consecutive occurrences
-    const nameRegex = new RegExp(`(${name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\s*)+`, 'gi');
-    // Replace all occurrences of the name with an empty string
-    return content.replace(nameRegex, '').trim();
+
+    // Split name into parts to handle first/last name separately
+    const nameParts = name.split(/\s+/);
+
+    // Create a regex that matches:
+    // 1. The exact full name
+    // 2. The name followed by "shared" or "posted"
+    // 3. The name at the start of the content
+    const patterns = [
+        `(${name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\s*)`,
+        `(${name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\s*(shared|posted|writes|commented|likes))`,
+        `^(${name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\s*)`
+    ];
+
+    let cleanContent = content;
+
+    // Apply each pattern
+    patterns.forEach(pattern => {
+        const regex = new RegExp(pattern, 'gi');
+        cleanContent = cleanContent.replace(regex, '');
+    });
+
+    // Clean up any resulting double spaces and trim
+    cleanContent = cleanContent.replace(/\s+/g, ' ').trim();
+
+    return cleanContent;
 }
