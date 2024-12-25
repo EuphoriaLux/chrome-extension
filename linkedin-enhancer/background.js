@@ -4,38 +4,6 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log("Service worker installed.");
 });
 
-function handleWindowMessage(newWindow, response) {
-    console.log("handleWindowMessage called with response:", response);
-    
-    // Store the window ID for later use
-    const windowId = newWindow.id;
-    
-    // Get the first tab in the new window
-    chrome.tabs.query({windowId: windowId}, function(tabs) {
-        if (tabs && tabs[0]) {
-            const tabId = tabs[0].id;
-            
-            // Wait for the tab to be ready
-            chrome.tabs.onUpdated.addListener(function listener(updatedTabId, changeInfo, tab) {
-                if (updatedTabId === tabId && changeInfo.status === 'complete') {
-                    console.log("Sending posts to window:", response?.posts);
-                    
-                    chrome.tabs.sendMessage(tabId, {
-                        action: "setPostContent",
-                        postContent: response?.posts || [],
-                        debug: response?.debug || {}
-                    }).catch(error => {
-                        console.error("Error sending message:", error);
-                    });
-                    
-                    // Remove the listener after sending the message
-                    chrome.tabs.onUpdated.removeListener(listener);
-                }
-            });
-        }
-    });
-}
-
 chrome.action.onClicked.addListener(async (tab) => {
     console.log("Extension icon clicked. Tab URL:", tab.url);
     
@@ -48,6 +16,14 @@ chrome.action.onClicked.addListener(async (tab) => {
         // Store the original tab ID
         const originalTabId = tab.id;
 
+        // Create the window first
+        const newWindow = await chrome.windows.create({
+            url: "window.html",
+            type: "popup",
+            width: 800,
+            height: 600
+        });
+
         console.log("Injecting content script...");
         await chrome.scripting.executeScript({
             target: { tabId: originalTabId },
@@ -55,28 +31,30 @@ chrome.action.onClicked.addListener(async (tab) => {
         });
         console.log("Content script injected successfully");
 
-        chrome.windows.create({
-            url: "window.html",
-            type: "popup",
-            width: 800,
-            height: 600
-        }, function(newWindow) {
-            console.log("New window created:", newWindow);
-            
-            // Use a longer delay to ensure the content script is ready
-            setTimeout(() => {
+        // Wait for both the content script and window to be ready
+        setTimeout(async () => {
+            try {
                 console.log("Sending message to content script to get posts...");
-                chrome.tabs.sendMessage(originalTabId, {action: "getPostContent"})
-                    .then(response => {
-                        console.log("Received response from content script:", response);
-                        handleWindowMessage(newWindow, response);
-                    })
-                    .catch(error => {
-                        console.error("Error getting posts:", error);
-                        handleWindowMessage(newWindow, { posts: [] });
+                const response = await chrome.tabs.sendMessage(originalTabId, {action: "getPostContent"});
+                console.log("Received response from content script:", response);
+                
+                // Get the tab in the new window
+                const windowTabs = await chrome.tabs.query({windowId: newWindow.id});
+                if (windowTabs && windowTabs[0]) {
+                    const popupTabId = windowTabs[0].id;
+                    
+                    // Send the posts to the popup window
+                    await chrome.tabs.sendMessage(popupTabId, {
+                        action: "setPostContent",
+                        postContent: response?.posts || [],
+                        debug: response?.debug || {}
                     });
-            }, 2000); // Increased delay to 2000ms
-        });
+                }
+            } catch (error) {
+                console.error("Error in message handling:", error);
+            }
+        }, 2000);
+
     } catch (error) {
         console.error("Error in click handler:", error);
     }

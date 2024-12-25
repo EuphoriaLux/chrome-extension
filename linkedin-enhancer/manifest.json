@@ -15,13 +15,6 @@
   "background": {
     "service_worker": "background.js"
   },
-  "content_scripts": [
-    {
-      "matches": ["https://www.linkedin.com/*"],
-      "js": ["content.js"],
-      "css": ["styles.css"]
-    }
-  ],
   "action": {
     "default_title": "LinkedIn Enhancer"
   },
