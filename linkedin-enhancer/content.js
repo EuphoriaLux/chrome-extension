@@ -79,8 +79,8 @@ function removeNameFromContent(content, name) {
     if (!content || !name) {
         return content;
     }
-    // Create a regex to match the name, with word boundaries to avoid partial matches
-    const nameRegex = new RegExp(`\\b${name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'gi');
+    // Create a regex to match the name, with consecutive occurrences
+    const nameRegex = new RegExp(`(${name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\s*)+`, 'gi');
     // Replace all occurrences of the name with an empty string
     return content.replace(nameRegex, '').trim();
 }
