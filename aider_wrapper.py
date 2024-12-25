@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import os
+import configparser
 
 def get_current_mode():
     config = configparser.ConfigParser()
