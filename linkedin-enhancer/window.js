@@ -2,29 +2,49 @@ console.log("Window script loaded");
 
 const statusMessage = document.getElementById('status-message');
 const postTemplate = document.getElementById('post-template');
+const loadingIndicator = document.getElementById('loading-indicator');
 
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
+        console.log("Window received message:", request); // Add debug log
         if (request.action === "setPostContent") {
+            console.log("Handling post content:", request.postContent); // Add debug log
             handlePostContent(request.postContent);
         }
     }
 );
 
 function handlePostContent(posts) {
+    console.log("Starting to handle posts:", posts); // Add debug log
+    
     statusMessage.textContent = '';
+    loadingIndicator.style.display = 'none'; // Hide loading indicator
     const postContainer = document.getElementById('post-container');
+    
+    if (!postContainer) {
+        console.error("Post container not found!"); // Add error check
+        return;
+    }
+    
     postContainer.innerHTML = '';
 
     if (!posts || posts.length === 0) {
+        console.log("No posts to display"); // Add debug log
         statusMessage.textContent = "No posts found or error occurred";
         return;
     }
 
-    posts.forEach((post, index) => {
-        const postElement = createPostElement(post, index);
-        postContainer.appendChild(postElement);
-    });
+    try {
+        posts.forEach((post, index) => {
+            console.log(`Creating element for post ${index}:`, post); // Add debug log
+            const postElement = createPostElement(post, index);
+            postContainer.appendChild(postElement);
+        });
+        console.log("All posts rendered successfully"); // Add debug log
+    } catch (error) {
+        console.error("Error rendering posts:", error); // Add error handling
+        statusMessage.textContent = "Error rendering posts";
+    }
 }
 
 function createPostElement(post, index) {
