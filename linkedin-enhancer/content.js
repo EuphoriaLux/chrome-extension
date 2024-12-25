@@ -28,8 +28,8 @@ function getLinkedInPosts() {
             let postContent = "";
             let posterName = "";
 
-            // Updated selectors for poster name
-            const nameElements = postContainer.querySelectorAll([
+            // Simplified name extraction
+            const nameElement = postContainer.querySelector([
                 '.update-components-actor__title span[dir="ltr"]',
                 '.feed-shared-actor__title span[dir="ltr"]',
                 '.update-components-actor__name',
@@ -37,13 +37,14 @@ function getLinkedInPosts() {
                 '.update-components-actor__meta-link'
             ].join(', '));
 
-            if (nameElements.length > 0) {
-                posterName = nameElements[0].innerText.trim();
+            if (nameElement) {
+                // Take only the first line of text and clean it
+                posterName = nameElement.innerText.split('\n')[0].trim();
             } else {
-                // Fallback method to find name
+                // Fallback method
                 const nameLink = postContainer.querySelector('a[data-tracking-control-name="feed_shared-actor-name"]');
                 if (nameLink) {
-                    posterName = nameLink.innerText.trim();
+                    posterName = nameLink.innerText.split('\n')[0].trim();
                 } else {
                     console.warn("Content script - Could not find name using primary or fallback selectors");
                     posterName = "Unknown User";
