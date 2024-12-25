@@ -15,31 +15,35 @@ chrome.action.onClicked.addListener((tab) => {
         chrome.tabs.sendMessage(tab.id, {action: "getPostContent"}, function(response) {
             if (response && response.posts) {
                 console.log("Background script - Received posts from content script:", response.posts);
-                // Send the post content to the new window
-                chrome.runtime.sendMessage({ action: "setPostContent", postContent: response.posts, windowId: newWindow.id });
+                // Wait for the new window's tab to be fully loaded
+                chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
+                    if (tabId === newWindow.tabs[0].id && changeInfo.status === 'complete') {
+                        // Send the post content to the new window
+                        chrome.tabs.sendMessage(tabId, { action: "setPostContent", postContent: response.posts });
+                        chrome.tabs.onUpdated.removeListener(listener);
+                    }
+                });
             } else if (response && response.error) {
                 console.error("Background script - Error from content script:", response.error);
-                chrome.runtime.sendMessage({ action: "setPostContent", postContent: null, windowId: newWindow.id });
+                // Wait for the new window's tab to be fully loaded
+                chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
+                    if (tabId === newWindow.tabs[0].id && changeInfo.status === 'complete') {
+                        // Send the post content to the new window
+                        chrome.tabs.sendMessage(tabId, { action: "setPostContent", postContent: null });
+                        chrome.tabs.onUpdated.removeListener(listener);
+                    }
+                });
             } else {
                 console.error("Background script - Unknown error from content script");
-                chrome.runtime.sendMessage({ action: "setPostContent", postContent: null, windowId: newWindow.id });
+                // Wait for the new window's tab to be fully loaded
+                chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
+                    if (tabId === newWindow.tabs[0].id && changeInfo.status === 'complete') {
+                        // Send the post content to the new window
+                        chrome.tabs.sendMessage(tabId, { action: "setPostContent", postContent: null });
+                        chrome.tabs.onUpdated.removeListener(listener);
+                    }
+                });
             }
         });
     });
 });
-
-chrome.runtime.onMessage.addListener(
-    function(request, sender, sendResponse) {
-        if (request.action === "setPostContent" && request.windowId) {
-            console.log("Background script - Received setPostContent message for window:", request.windowId);
-            // Send the post content to the new window
-            chrome.tabs.query({windowId: request.windowId}, function(tabs) {
-                if (tabs && tabs.length > 0) {
-                    chrome.tabs.sendMessage(tabs[0].id, { action: "setPostContent", postContent: request.postContent });
-                } else {
-                    console.error("Background script - Could not find tab for window:", request.windowId);
-                }
-            });
-        }
-    }
-);
