@@ -5,58 +5,69 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 function handleWindowMessage(newWindow, response) {
+    console.log("handleWindowMessage called with response:", response);
+    
     chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
+        console.log("Tab updated:", { tabId, changeInfo, expectedTabId: newWindow.tabs[0].id });
+        
         if (tabId === newWindow.tabs[0].id && changeInfo.status === 'complete') {
+            console.log("Sending posts to window:", response?.posts);
+            
             chrome.tabs.sendMessage(tabId, {
                 action: "setPostContent",
-                postContent: response?.posts || null
+                postContent: response?.posts || []
+            }, function(response) {
+                if (chrome.runtime.lastError) {
+                    console.error("Error sending message to window:", chrome.runtime.lastError);
+                } else {
+                    console.log("Message sent successfully to window");
+                }
             });
+            
             chrome.tabs.onUpdated.removeListener(listener);
         }
     });
 }
 
 chrome.action.onClicked.addListener(async (tab) => {
-    console.log("Background script - Extension icon clicked");
+    console.log("Extension icon clicked. Tab URL:", tab.url);
     
-    // First, ensure we're on a LinkedIn page
     if (!tab.url.includes("linkedin.com")) {
         console.error("Not a LinkedIn page");
         return;
     }
 
     try {
-        // Inject the content script if it hasn't been injected
+        console.log("Injecting content script...");
         await chrome.scripting.executeScript({
             target: { tabId: tab.id },
             files: ['content.js']
         });
+        console.log("Content script injected successfully");
 
-        // Create the window after ensuring content script is loaded
         chrome.windows.create({
             url: "window.html",
-            type: "normal"
+            type: "popup",
+            width: 800,
+            height: 600
         }, function(newWindow) {
-            // Wait a short moment before sending the message
+            console.log("New window created:", newWindow);
+            
             setTimeout(() => {
+                console.log("Sending message to content script to get posts...");
                 chrome.tabs.sendMessage(tab.id, {action: "getPostContent"}, function(response) {
                     if (chrome.runtime.lastError) {
-                        console.error("Error sending message:", chrome.runtime.lastError);
-                        handleWindowMessage(newWindow, { posts: null });
+                        console.error("Error getting posts:", chrome.runtime.lastError);
+                        handleWindowMessage(newWindow, { posts: [] });
                         return;
                     }
                     
-                    if (response && response.posts) {
-                        console.log("Background script - Received posts from content script:", response.posts);
-                        handleWindowMessage(newWindow, response);
-                    } else {
-                        console.error("Background script - Error or no posts from content script");
-                        handleWindowMessage(newWindow, { posts: null });
-                    }
+                    console.log("Received response from content script:", response);
+                    handleWindowMessage(newWindow, response);
                 });
-            }, 500); // Add a 500ms delay
+            }, 1000); // Increased delay to 1000ms
         });
     } catch (error) {
-        console.error("Error injecting content script:", error);
+        console.error("Error in click handler:", error);
     }
 });

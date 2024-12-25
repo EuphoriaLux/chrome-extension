@@ -4,12 +4,38 @@ const statusMessage = document.getElementById('status-message');
 const postTemplate = document.getElementById('post-template');
 const loadingIndicator = document.getElementById('loading-indicator');
 
+let messageCount = 0;
+const debugInfo = {
+    messageCount: document.getElementById('message-count'),
+    lastMessage: document.getElementById('last-message')
+};
+
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
-        console.log("Window received message:", request); // Add debug log
+        messageCount++;
+        if (debugInfo.messageCount) {
+            debugInfo.messageCount.textContent = `Messages received: ${messageCount}`;
+        }
+        if (debugInfo.lastMessage) {
+            debugInfo.lastMessage.textContent = `Last message: ${JSON.stringify(request)}`;
+        }
+        console.log("Window received message:", {
+            request: request,
+            sender: sender,
+            action: request?.action,
+            postContent: request?.postContent
+        });
+        
         if (request.action === "setPostContent") {
-            console.log("Handling post content:", request.postContent); // Add debug log
+            if (!request.postContent) {
+                console.error("No post content received");
+                document.getElementById('status-message').textContent = "No posts received";
+                return;
+            }
+            console.log("About to handle post content:", request.postContent);
             handlePostContent(request.postContent);
+        } else {
+            console.log("Received message with unexpected action:", request.action);
         }
     }
 );

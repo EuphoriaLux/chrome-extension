@@ -1,86 +1,83 @@
-console.log("Content script loaded");
+console.log("Content script loaded and running");
 
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
+        console.log("Content script received message:", request);
+        
         if (request.action === "getPostContent") {
             try {
+                console.log("Getting LinkedIn posts...");
                 const postContent = getLinkedInPosts();
-                console.log("Content script - Post content:", postContent);
+                console.log("Retrieved posts:", postContent);
                 sendResponse({ posts: postContent });
             } catch (error) {
-                console.error("Content script - Error getting post content:", error);
-                sendResponse({ error: "Could not retrieve post content." });
+                console.error("Error getting posts:", error);
+                sendResponse({ posts: [], error: error.message });
             }
+            return true; // Keep the message channel open for async response
         }
     }
 );
 
 function getLinkedInPosts() {
-    try {
-        const posts = [];
-        const postContainers = document.querySelectorAll('.feed-shared-update-v2');
+    console.log("Starting to extract posts");
+    const posts = [];
+    const postContainers = document.querySelectorAll('.feed-shared-update-v2');
+    console.log("Found post containers:", postContainers.length);
+    
+    postContainers.forEach(postContainer => {
+        let postContent = "";
+        let posterName = "";
 
-        if (postContainers.length === 0) {
-            throw new Error("No posts found on the page");
+        // Simplified name extraction
+        const nameElement = postContainer.querySelector([
+            '.update-components-actor__title span[dir="ltr"]',
+            '.feed-shared-actor__title span[dir="ltr"]',
+            '.update-components-actor__name',
+            '.feed-shared-actor__name',
+            '.update-components-actor__meta-link'
+        ].join(', '));
+
+        if (nameElement) {
+            // Take only the first line of text and clean it
+            posterName = nameElement.innerText.split('\n')[0].trim();
+        } else {
+            // Fallback method
+            const nameLink = postContainer.querySelector('a[data-tracking-control-name="feed_shared-actor-name"]');
+            if (nameLink) {
+                posterName = nameLink.innerText.split('\n')[0].trim();
+            } else {
+                console.warn("Content script - Could not find name using primary or fallback selectors");
+                posterName = "Unknown User";
+            }
         }
 
-        postContainers.forEach(postContainer => {
-            let postContent = "";
-            let posterName = "";
+        // Updated selectors for post content
+        const textContentElement = postContainer.querySelector('.update-components-text, .feed-shared-update-v2__commentary');
+        const articleContentElement = postContainer.querySelector('[data-text-entity-list-container="true"]');
 
-            // Simplified name extraction
-            const nameElement = postContainer.querySelector([
-                '.update-components-actor__title span[dir="ltr"]',
-                '.feed-shared-actor__title span[dir="ltr"]',
-                '.update-components-actor__name',
-                '.feed-shared-actor__name',
-                '.update-components-actor__meta-link'
-            ].join(', '));
+        if (textContentElement) {
+            postContent = textContentElement.innerHTML;
+        } else if (articleContentElement) {
+            postContent = articleContentElement.innerHTML;
+        } else {
+            console.warn("Content script - Could not find content using any selectors.");
+            postContent = "Content not available.";
+        }
 
-            if (nameElement) {
-                // Take only the first line of text and clean it
-                posterName = nameElement.innerText.split('\n')[0].trim();
-            } else {
-                // Fallback method
-                const nameLink = postContainer.querySelector('a[data-tracking-control-name="feed_shared-actor-name"]');
-                if (nameLink) {
-                    posterName = nameLink.innerText.split('\n')[0].trim();
-                } else {
-                    console.warn("Content script - Could not find name using primary or fallback selectors");
-                    posterName = "Unknown User";
-                }
-            }
+        // Clean up the extracted text
+        postContent = cleanUpPostContent(postContent);
 
-            // Updated selectors for post content
-            const textContentElement = postContainer.querySelector('.update-components-text, .feed-shared-update-v2__commentary');
-            const articleContentElement = postContainer.querySelector('[data-text-entity-list-container="true"]');
+        // Remove the poster's name from the post content
+        postContent = removeNameFromContent(postContent, posterName);
 
-            if (textContentElement) {
-                postContent = textContentElement.innerHTML;
-            } else if (articleContentElement) {
-                postContent = articleContentElement.innerHTML;
-            } else {
-                console.warn("Content script - Could not find content using any selectors.");
-                postContent = "Content not available.";
-            }
-
-            // Clean up the extracted text
-            postContent = cleanUpPostContent(postContent);
-
-            // Remove the poster's name from the post content
-            postContent = removeNameFromContent(postContent, posterName);
-
-            posts.push({
-                posterName: posterName,
-                postContent: postContent
-            });
+        posts.push({
+            posterName: posterName,
+            postContent: postContent
         });
+    });
 
-        return posts;
-    } catch (error) {
-        console.error("Error in getLinkedInPosts:", error);
-        return [];
-    }
+    return posts;
 }
 
 function cleanUpPostContent(text) {
