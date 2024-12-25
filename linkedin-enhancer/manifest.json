@@ -7,7 +7,8 @@
     "activeTab",
     "scripting",
     "clipboardWrite",
-    "tabs"
+    "tabs",
+    "storage"
   ],
   "host_permissions": [
     "https://www.linkedin.com/*"
@@ -18,6 +19,7 @@
   "action": {
     "default_title": "LinkedIn Enhancer"
   },
+  "options_page": "options.html",
   "web_accessible_resources": [
     {
       "resources": ["images/icon16.png", "images/icon48.png", "images/icon128.png"],
