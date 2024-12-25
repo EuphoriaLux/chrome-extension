@@ -27,36 +27,45 @@ function getLinkedInPosts() {
         postContainers.forEach(postContainer => {
             let postContent = "";
             let posterName = "";
-            // Extract poster name
-            const nameElements = postContainer.querySelectorAll('.update-components-actor__title > span > span[aria-hidden="true"], .feed-shared-actor__name');
+
+            // Updated selectors for poster name
+            const nameElements = postContainer.querySelectorAll([
+                '.update-components-actor__title span[dir="ltr"]',
+                '.feed-shared-actor__title span[dir="ltr"]',
+                '.update-components-actor__name',
+                '.feed-shared-actor__name',
+                '.update-components-actor__meta-link'
+            ].join(', '));
 
             if (nameElements.length > 0) {
                 posterName = nameElements[0].innerText.trim();
             } else {
-                console.error("Content script - Could not find any heading elements for this post.");
+                // Fallback method to find name
+                const nameLink = postContainer.querySelector('a[data-tracking-control-name="feed_shared-actor-name"]');
+                if (nameLink) {
+                    posterName = nameLink.innerText.trim();
+                } else {
+                    console.warn("Content script - Could not find name using primary or fallback selectors");
+                    posterName = "Unknown User";
+                }
             }
 
-            // Attempt to find the main post content container for text-based posts
-            const textPostContainer = postContainer.querySelector('.update-components-text');
+            // Updated selectors for post content
+            const textContentElement = postContainer.querySelector('.update-components-text, .feed-shared-update-v2__commentary');
+            const articleContentElement = postContainer.querySelector('[data-text-entity-list-container="true"]');
 
-            if (textPostContainer) {
-                // Extract the text content from the text post container
-                postContent = textPostContainer.innerHTML;
+            if (textContentElement) {
+                postContent = textContentElement.innerHTML;
+            } else if (articleContentElement) {
+                postContent = articleContentElement.innerHTML;
             } else {
-                // If the text post container is not found, try to find a more specific post container for article-based posts
-                const articleContainer = postContainer.querySelector('article div[data-test-text-entity-container]');
-                if (articleContainer) {
-                    // Extract the text content from the article container
-                    postContent = articleContainer.innerHTML;
-                } else {
-                    console.error("Could not find post content using any selectors.");
-                    postContent = "Could not find post content.";
-                }
+                console.warn("Content script - Could not find content using any selectors.");
+                postContent = "Content not available.";
             }
 
             // Clean up the extracted text
             postContent = cleanUpPostContent(postContent);
-        
+
             // Remove the poster's name from the post content
             postContent = removeNameFromContent(postContent, posterName);
 
@@ -79,6 +88,10 @@ function cleanUpPostContent(text) {
         let cleanedText = text.replace(/\s+/g, ' ').trim();
         // Remove any leading or trailing newlines
         cleanedText = cleanedText.replace(/^\n+|\n+$/g, '');
+        // Handle HTML entities and decode them
+        const tempElement = document.createElement('div');
+        tempElement.innerHTML = cleanedText;
+        cleanedText = tempElement.textContent || tempElement.innerText || "";
         return cleanedText;
     }
     return "";
