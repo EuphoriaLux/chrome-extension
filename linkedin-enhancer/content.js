@@ -24,11 +24,20 @@ function getLinkedInPosts() {
         let posterName = "";
 
         // Extract poster name
-        const nameElement = postContainer.querySelector('.feed-shared-actor__name, .update-components-actor__name');
-        if (nameElement) {
-            posterName = nameElement.innerText.trim();
+        const headingElements = postContainer.querySelectorAll('[role="heading"]');
+        if (headingElements) {
+            let foundName = false;
+            headingElements.forEach(heading => {
+                if (heading.innerText && heading.innerText.trim() !== "") {
+                    posterName = heading.innerText.trim();
+                    foundName = true;
+                }
+            });
+            if (!foundName) {
+                console.error("Content script - Could not find poster name for this post.");
+            }
         } else {
-            console.error("Content script - Could not find poster name for this post.");
+             console.error("Content script - Could not find any heading elements for this post.");
         }
 
         // Attempt to find the main post content container for text-based posts
