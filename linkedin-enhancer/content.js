@@ -20,10 +20,17 @@ function getLinkedInPostContent() {
         // If the main container is not found, try to find a more specific post container
         const specificPostContainer = document.querySelector('.update-components-text');
         if (specificPostContainer) {
-            return specificPostContainer.innerText;
+            postContent = specificPostContainer.innerText;
         }
         else {
-            return "Could not find post content.";
+            const articleContainer = document.querySelector('article div[data-test-text-entity-container]');
+            if (articleContainer) {
+                postContent = articleContainer.innerText;
+            } else {
+                console.error("Could not find post content using any selectors.");
+                postContent = "Could not find post content.";
+            }
         }
     }
+    return postContent;
 }
