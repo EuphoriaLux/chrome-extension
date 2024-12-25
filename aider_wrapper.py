@@ -19,10 +19,18 @@ def run_aider():
         sys.exit(1)
 
     aider_args = sys.argv[1:]
-
+    
+    # Check if --model is already specified in the arguments
+    model_specified = False
+    for i, arg in enumerate(aider_args):
+        if arg == "--model" and i + 1 < len(aider_args):
+            model_specified = True
+            break
+    
     if mode == "architect":
         print("Running aider in architect mode...")
-        aider_args.extend(["--model", "gpt-4-architect"])
+        if not model_specified:
+            aider_args.extend(["--model", "gpt-4-architect"])
     else:
         print("Running aider in normal mode...")
 
