@@ -23,10 +23,10 @@ function getLinkedInPosts() {
         let postContent = "";
         let posterName = "";
         // Extract poster name
-        const nameElements = postContainer.querySelectorAll('.update-components-actor__title > span > span, .feed-shared-actor__name');
+        const nameElement = postContainer.querySelector('.update-components-actor__title > span > span[aria-hidden="true"], .feed-shared-actor__name');
 
-        if (nameElements.length > 0) {
-            posterName = nameElements[0].innerText.trim();
+        if (nameElement) {
+            posterName = nameElement.innerText.trim();
         } else {
              console.error("Content script - Could not find any heading elements for this post.");
         }
