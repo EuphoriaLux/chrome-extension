@@ -15,89 +15,85 @@ chrome.runtime.onMessage.addListener(
 );
 
 function handlePostContent(posts) {
-    console.log("Starting to handle posts:", posts); // Add debug log
+    console.log("Starting to handle posts:", posts);
     
-    statusMessage.textContent = '';
-    loadingIndicator.style.display = 'none'; // Hide loading indicator
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const statusMessage = document.getElementById('status-message');
     const postContainer = document.getElementById('post-container');
     
+    // Hide loading indicator
+    if (loadingIndicator) {
+        loadingIndicator.style.display = 'none';
+    }
+    
     if (!postContainer) {
-        console.error("Post container not found!"); // Add error check
+        console.error("Post container not found!");
         return;
     }
     
     postContainer.innerHTML = '';
 
     if (!posts || posts.length === 0) {
-        console.log("No posts to display"); // Add debug log
+        console.log("No posts to display");
         statusMessage.textContent = "No posts found or error occurred";
         return;
     }
 
     try {
         posts.forEach((post, index) => {
-            console.log(`Creating element for post ${index}:`, post); // Add debug log
-            const postElement = createPostElement(post, index);
+            console.log(`Creating element for post ${index}:`, post);
+            const postElement = document.importNode(postTemplate.content, true);
+            
+            // Set the content
+            const posterNameElement = postElement.querySelector('.poster-name');
+            const postContentElement = postElement.querySelector('.post-content');
+            
+            if (posterNameElement) posterNameElement.textContent = post.posterName;
+            if (postContentElement) postContentElement.textContent = post.postContent;
+            
+            // Setup buttons
+            const generateBtn = postElement.querySelector('.generate-comment-btn');
+            const generatedComment = postElement.querySelector('.generated-comment');
+            const commentContent = postElement.querySelector('.comment-content');
+            const copyBtn = postElement.querySelector('.copy-comment-btn');
+            
+            if (generateBtn) {
+                generateBtn.addEventListener('click', () => {
+                    generateBtn.disabled = true;
+                    generateBtn.textContent = 'Generating...';
+                    
+                    // Simulate comment generation (placeholder)
+                    setTimeout(() => {
+                        const placeholderComment = `This is a sample comment for the post by ${post.posterName}`;
+                        commentContent.textContent = placeholderComment;
+                        generatedComment.classList.remove('hidden');
+                        generateBtn.disabled = false;
+                        generateBtn.textContent = 'Generate Comment';
+                    }, 1000);
+                });
+            }
+            
+            if (copyBtn) {
+                copyBtn.addEventListener('click', () => {
+                    if (commentContent.textContent) {
+                        navigator.clipboard.writeText(commentContent.textContent)
+                            .then(() => {
+                                copyBtn.textContent = 'Copied!';
+                                setTimeout(() => {
+                                    copyBtn.textContent = 'Copy';
+                                }, 2000);
+                            })
+                            .catch(err => console.error('Failed to copy:', err));
+                    }
+                });
+            }
+            
             postContainer.appendChild(postElement);
         });
-        console.log("All posts rendered successfully"); // Add debug log
+        
+        console.log("All posts rendered successfully");
     } catch (error) {
-        console.error("Error rendering posts:", error); // Add error handling
+        console.error("Error rendering posts:", error);
         statusMessage.textContent = "Error rendering posts";
     }
-}
-
-function createPostElement(post, index) {
-    const postElement = postTemplate.content.cloneNode(true);
-    const postCard = postElement.querySelector('.post-card');
-    
-    postCard.querySelector('.poster-name').textContent = post.posterName;
-    postCard.querySelector('.post-content').textContent = post.postContent;
-    
-    const generateBtn = postCard.querySelector('.generate-comment-btn');
-    const generatedComment = postCard.querySelector('.generated-comment');
-    const commentContent = postCard.querySelector('.comment-content');
-    const copyBtn = postCard.querySelector('.copy-comment-btn');
-
-    generateBtn.addEventListener('click', async () => {
-        generateBtn.disabled = true;
-        generateBtn.textContent = 'Generating...';
-        
-        try {
-            // TODO: Replace this with actual API call to your LLM service
-            const comment = await generateComment(post);
-            commentContent.textContent = comment;
-            generatedComment.classList.remove('hidden');
-        } catch (error) {
-            console.error('Error generating comment:', error);
-            commentContent.textContent = 'Failed to generate comment. Please try again.';
-        } finally {
-            generateBtn.disabled = false;
-            generateBtn.textContent = 'Generate Comment';
-        }
-    });
-
-    copyBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(commentContent.textContent)
-            .then(() => {
-                const originalText = copyBtn.textContent;
-                copyBtn.textContent = 'Copied!';
-                setTimeout(() => {
-                    copyBtn.textContent = originalText;
-                }, 2000);
-            })
-            .catch(err => console.error('Failed to copy text:', err));
-    });
-
-    return postElement;
-}
-
-// Placeholder function for LLM integration
-async function generateComment(post) {
-    // TODO: Implement actual LLM API call
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve(`This is a placeholder for a generated comment about "${post.postContent.substring(0, 50)}..."`);
-        }, 1000);
-    });
 }

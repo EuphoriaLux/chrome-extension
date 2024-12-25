@@ -3,38 +3,41 @@ body {
     padding: 20px;
     max-width: 800px;
     margin: 0 auto;
-    line-height: 1.6;
     background-color: #f3f2ef;
 }
 
-.post-card {
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+h1 {
+    color: #0a66c2;
+    text-align: center;
     margin-bottom: 20px;
-    overflow: hidden;
+}
+
+.post-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    padding: 16px;
 }
 
 .post-header {
-    padding: 16px;
-    border-bottom: 1px solid #e0e0e0;
-    background-color: #f9f9f9;
+    margin-bottom: 12px;
 }
 
 .poster-name {
-    margin: 0;
     color: #0a66c2;
     font-size: 16px;
+    font-weight: 600;
+    margin: 0;
 }
 
 .post-content {
-    padding: 16px;
     color: #333;
-}
-
-.post-actions {
-    padding: 16px;
-    border-top: 1px solid #e0e0e0;
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 16px;
+    padding: 8px 0;
+    border-bottom: 1px solid #e0e0e0;
 }
 
 .generate-comment-btn {
@@ -52,48 +55,57 @@ body {
     background-color: #004182;
 }
 
+.generate-comment-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
 .generated-comment {
-    margin-top: 16px;
-    padding: 16px;
+    margin-top: 12px;
+    padding: 12px;
     background-color: #f3f2ef;
     border-radius: 8px;
 }
 
-.hidden {
-    display: none;
+.generated-comment h4 {
+    margin: 0 0 8px 0;
+    color: #666;
+}
+
+.comment-content {
+    font-size: 14px;
+    line-height: 1.4;
+    color: #333;
+    margin-bottom: 8px;
 }
 
 .copy-comment-btn {
-    margin-top: 8px;
     background-color: #057642;
     color: white;
     border: none;
     padding: 6px 12px;
     border-radius: 12px;
     cursor: pointer;
+    font-size: 12px;
 }
 
 .copy-comment-btn:hover {
     background-color: #046235;
 }
 
-.comment-content {
-    margin: 10px 0;
-    white-space: pre-wrap;
+.hidden {
+    display: none;
 }
 
 #loading-indicator {
-    padding: 10px;
-    color: #666;
     text-align: center;
+    color: #666;
+    padding: 20px;
 }
 
 #status-message {
+    text-align: center;
+    color: #dc2626;
     padding: 10px;
-    margin-bottom: 10px;
-    color: red;
-}
-
-#post-container {
-    min-height: 100px;
+    margin-bottom: 16px;
 }
