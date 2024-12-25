@@ -19,12 +19,10 @@ chrome.action.onClicked.addListener(function() {
                     console.error("Background script - No response or error from content script.");
                     currentPostContent = "Could not retrieve post content.";
                 }
-                chrome.windows.create({
-                    type: "normal",
-                    width: 800,
-                    height: 600
-                }, function (newWindow) {
-                    popupTabId = newWindow.tabs[0].id;
+                chrome.tabs.create({
+                    url: chrome.runtime.getURL("popup.html")
+                }, function (tab) {
+                    popupTabId = tab.id;
                     // Check if the popup is ready before sending the message
                     if (popupReady) {
                         console.log("Background script - Popup is ready, sending message to popup");
