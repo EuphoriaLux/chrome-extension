@@ -1,12 +1,10 @@
 console.log("Popup script loaded");
 
-// Send a message to the background script to indicate that the popup is ready
-chrome.runtime.sendMessage({ action: "popupReady" }, function(response) {
-    console.log("Popup script - Popup ready message sent to background script");
-});
-
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
+        chrome.runtime.sendMessage({ action: "popupReady" }, function(response) {
+            console.log("Popup script - Popup ready message sent to background script");
+        });
         if (request.action === "setPostContent") {
             console.log("Popup script - Received posts:", request.postContent);
             const posts = request.postContent;
