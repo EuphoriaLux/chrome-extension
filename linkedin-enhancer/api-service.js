@@ -11,20 +11,21 @@ class APIService {
                 .replace('{content}', postContent)
                 .replace('{name}', posterName);
 
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=' + settings.apiKey, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${settings.apiKey}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: "gpt-3.5-turbo",
-                    messages: [{
-                        role: "user",
-                        content: prompt
+                    contents: [{
+                        parts: [{
+                            text: prompt
+                        }]
                     }],
-                    temperature: 0.7,
-                    max_tokens: 150
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 150,
+                    }
                 })
             });
 
@@ -33,7 +34,11 @@ class APIService {
             }
 
             const data = await response.json();
-            return data.choices[0].message.content.trim();
+            if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+                return data.candidates[0].content.parts[0].text.trim();
+            } else {
+                throw new Error('Unexpected API response format');
+            }
         } catch (error) {
             console.error('Error generating comment:', error);
             throw error;

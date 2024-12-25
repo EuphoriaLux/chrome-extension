@@ -6,7 +6,7 @@ function saveOptions() {
 
     chrome.storage.sync.set({
         apiKey: apiKey,
-        defaultPrompt: defaultPrompt
+        defaultPrompt: defaultPrompt || 'You are a professional LinkedIn user. Generate an engaging and relevant comment for the following LinkedIn post by {name}: "{content}". The comment should be professional, add value to the discussion, and maintain a friendly tone. Keep it concise and natural.'
     }, function() {
         status.textContent = 'Settings saved.';
         status.className = 'status success';
@@ -21,7 +21,7 @@ function saveOptions() {
 function restoreOptions() {
     chrome.storage.sync.get({
         apiKey: '',
-        defaultPrompt: 'Please generate a professional and engaging comment for a LinkedIn post. The post content is: {content}. The comment should be professional, relevant, and maintain a friendly tone while adding value to the discussion.'
+        defaultPrompt: 'You are a professional LinkedIn user. Generate an engaging and relevant comment for the following LinkedIn post by {name}: "{content}". The comment should be professional, add value to the discussion, and maintain a friendly tone. Keep it concise and natural.'
     }, function(items) {
         document.getElementById('apiKey').value = items.apiKey;
         document.getElementById('defaultPrompt').value = items.defaultPrompt;

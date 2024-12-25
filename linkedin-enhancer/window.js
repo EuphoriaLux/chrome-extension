@@ -105,18 +105,25 @@ function displayPosts(posts) {
             const copyBtn = postElement.querySelector('.copy-comment-btn');
             
             if (generateBtn) {
-                generateBtn.addEventListener('click', () => {
-                    generateBtn.disabled = true;
-                    generateBtn.textContent = 'Generating...';
-                    
-                    // Simulate comment generation (replace with actual API call later)
-                    setTimeout(() => {
-                        const placeholderComment = `This is a sample comment for the post by ${cleanName}`;
-                        commentContent.textContent = placeholderComment;
+                generateBtn.addEventListener('click', async () => {
+                    try {
+                        generateBtn.disabled = true;
+                        generateBtn.textContent = 'Generating...';
                         generatedComment.classList.remove('hidden');
+                        commentContent.textContent = 'Generating comment...';
+                        
+                        const generatedText = await APIService.generateComment(
+                            post.postContent,
+                            cleanName
+                        );
+                        
+                        commentContent.textContent = generatedText;
+                    } catch (error) {
+                        commentContent.textContent = `Error: ${error.message}`;
+                    } finally {
                         generateBtn.disabled = false;
                         generateBtn.textContent = 'Generate Comment';
-                    }, 1000);
+                    }
                 });
             }
             
