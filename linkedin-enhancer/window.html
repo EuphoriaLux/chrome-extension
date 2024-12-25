@@ -8,6 +8,22 @@
     <h1>LinkedIn Posts</h1>
     <div id="status-message"></div>
     <div id="post-container"></div>
+    <template id="post-template">
+        <div class="post-card">
+            <div class="post-header">
+                <h3 class="poster-name"></h3>
+            </div>
+            <div class="post-content"></div>
+            <div class="post-actions">
+                <button class="generate-comment-btn">Generate Comment</button>
+                <div class="generated-comment hidden">
+                    <h4>Generated Comment:</h4>
+                    <div class="comment-content"></div>
+                    <button class="copy-comment-btn">Copy</button>
+                </div>
+            </div>
+        </div>
+    </template>
     <script src="window.js"></script>
 </body>
 </html>

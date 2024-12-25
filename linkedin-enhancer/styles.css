@@ -4,16 +4,80 @@ body {
     max-width: 800px;
     margin: 0 auto;
     line-height: 1.6;
+    background-color: #f3f2ef;
 }
 
-#post-container {
-    margin-top: 20px;
-}
-
-#post-container > div {
+.post-card {
     background: #fff;
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-    margin-bottom: 16px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.post-header {
     padding: 16px;
+    border-bottom: 1px solid #e0e0e0;
+    background-color: #f9f9f9;
+}
+
+.poster-name {
+    margin: 0;
+    color: #0a66c2;
+    font-size: 16px;
+}
+
+.post-content {
+    padding: 16px;
+    color: #333;
+}
+
+.post-actions {
+    padding: 16px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.generate-comment-btn {
+    background-color: #0a66c2;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 16px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+.generate-comment-btn:hover {
+    background-color: #004182;
+}
+
+.generated-comment {
+    margin-top: 16px;
+    padding: 16px;
+    background-color: #f3f2ef;
+    border-radius: 8px;
+}
+
+.hidden {
+    display: none;
+}
+
+.copy-comment-btn {
+    margin-top: 8px;
+    background-color: #057642;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+.copy-comment-btn:hover {
+    background-color: #046235;
+}
+
+.comment-content {
+    margin: 10px 0;
+    white-space: pre-wrap;
 }
