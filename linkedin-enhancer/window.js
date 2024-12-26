@@ -9,16 +9,42 @@ function initializeTheme() {
     });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    console.log("Window DOM loaded");
-    
-    // Initialize theme
-    initializeTheme();
-    
+// Error display helper
+function showError(message, duration = 5000) {
+    const errorContainer = document.getElementById('error-container') || createErrorContainer();
+    errorContainer.textContent = message;
+    errorContainer.classList.add('show');
+    setTimeout(() => errorContainer.classList.remove('show'), duration);
+}
+
+function createErrorContainer() {
+    const container = document.createElement('div');
+    container.id = 'error-container';
+    container.className = 'error-message';
+    document.body.insertBefore(container, document.body.firstChild);
+    return container;
+}
+
+// Loading state management
+function setLoading(isLoading, message = 'Loading posts...') {
     const loadingIndicator = document.getElementById('loading-indicator');
     if (loadingIndicator) {
-        loadingIndicator.style.display = 'block';
+        if (isLoading) {
+            loadingIndicator.innerHTML = `
+                <div class="loading-spinner"></div>
+                <span>${message}</span>
+            `;
+            loadingIndicator.style.display = 'flex';
+        } else {
+            loadingIndicator.style.display = 'none';
+        }
     }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("Window DOM loaded");
+    initializeTheme();
+    setLoading(true);
 });
 
 // Listen for theme changes
@@ -48,13 +74,8 @@ chrome.runtime.onMessage.addListener(
             debugInfo.lastMessage.textContent = `Last message: ${JSON.stringify(request)}`;
         }
 
-        const loadingIndicator = document.getElementById('loading-indicator');
-        const statusMessage = document.getElementById('status-message');
-
         if (request.action === "setPostContent") {
-            if (loadingIndicator) {
-                loadingIndicator.style.display = 'none';
-            }
+            setLoading(false);
 
             if (request.debug) {
                 showDebugInfo(request.debug);
@@ -62,53 +83,45 @@ chrome.runtime.onMessage.addListener(
 
             if (!request.postContent || !Array.isArray(request.postContent) || request.postContent.length === 0) {
                 console.log("No posts received in message");
-                if (statusMessage) {
-                    statusMessage.textContent = "No posts received";
-                }
+                showError("No posts found. Try refreshing the LinkedIn page.");
                 sendResponse({ status: "no_posts" });
                 return false;
             }
 
-            displayPosts(request.postContent);
-            sendResponse({ status: "success" });
+            try {
+                displayPosts(request.postContent);
+                sendResponse({ status: "success" });
+            } catch (error) {
+                console.error("Error displaying posts:", error);
+                showError(`Error displaying posts: ${error.message}`);
+                sendResponse({ status: "error", message: error.message });
+            }
         }
 
         return false;
     }
 );
 
-function displayPosts(posts) {
+async function displayPosts(posts) {
     console.log("Displaying posts:", posts);
     
     const postContainer = document.getElementById('post-container');
     const postTemplate = document.getElementById('post-template');
-    const statusMessage = document.getElementById('status-message');
     
     if (!postContainer || !postTemplate) {
-        console.error("Required elements not found!", {
-            postContainer: !!postContainer,
-            postTemplate: !!postTemplate
-        });
-        if (statusMessage) {
-            statusMessage.textContent = "Error: Required elements not found";
-        }
-        return;
+        throw new Error("Required elements not found in the DOM");
     }
 
     if (!Array.isArray(posts) || posts.length === 0) {
-        console.log("No posts to display");
-        if (statusMessage) {
-            statusMessage.textContent = "No posts found";
-        }
-        return;
+        throw new Error("No valid posts to display");
     }
 
     postContainer.innerHTML = '';
-    if (statusMessage) {
-        statusMessage.textContent = `Displaying ${posts.length} posts`;
-    }
+    setLoading(false);
 
-    posts.forEach((post, index) => {
+    const fragment = document.createDocumentFragment();
+
+    for (const [index, post] of posts.entries()) {
         try {
             const postElement = document.importNode(postTemplate.content, true);
             
@@ -128,13 +141,15 @@ function displayPosts(posts) {
                 generateBtn.addEventListener('click', async () => {
                     try {
                         generateBtn.disabled = true;
+                        generateBtn.textContent = 'Generating...';
+                        
                         const settings = await chrome.storage.sync.get(['defaultPrompt']);
                         const prompt = settings.defaultPrompt
                             ? settings.defaultPrompt
                                 .replace('{content}', post.postContent)
                                 .replace('{name}', cleanName)
                             : `Generate a professional comment for LinkedIn post by ${cleanName}: "${post.postContent}"`;
-                        generateBtn.textContent = 'Generating...';
+
                         generatedComment.classList.remove('hidden');
                         promptDisplay.classList.remove('hidden');
                         commentContent.textContent = 'Generating comment...';
@@ -147,6 +162,7 @@ function displayPosts(posts) {
                         promptTextElement.textContent = prompt;
                         commentContent.textContent = generatedText;
                     } catch (error) {
+                        showError(error.message);
                         commentContent.textContent = `Error: ${error.message}`;
                     } finally {
                         generateBtn.disabled = false;
@@ -156,26 +172,31 @@ function displayPosts(posts) {
             }
             
             if (copyBtn) {
-                copyBtn.addEventListener('click', () => {
+                copyBtn.addEventListener('click', async () => {
                     if (commentContent.textContent) {
-                        navigator.clipboard.writeText(commentContent.textContent)
-                            .then(() => {
-                                copyBtn.textContent = 'Copied!';
-                                setTimeout(() => {
-                                    copyBtn.textContent = 'Copy';
-                                }, 2000);
-                            })
-                            .catch(err => console.error('Failed to copy:', err));
+                        try {
+                            await navigator.clipboard.writeText(commentContent.textContent);
+                            copyBtn.textContent = 'Copied!';
+                            setTimeout(() => {
+                                copyBtn.textContent = 'Copy';
+                            }, 2000);
+                        } catch (err) {
+                            showError('Failed to copy to clipboard');
+                            console.error('Failed to copy:', err);
+                        }
                     }
                 });
             }
             
-            postContainer.appendChild(postElement);
+            fragment.appendChild(postElement);
             console.log(`Successfully added post ${index + 1}`);
         } catch (error) {
             console.error(`Error displaying post ${index}:`, error);
+            showError(`Error displaying post ${index + 1}`);
         }
-    });
+    }
+
+    postContainer.appendChild(fragment);
 }
 
 function showDebugInfo(debugData) {
