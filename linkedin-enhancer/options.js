@@ -115,13 +115,45 @@ function restoreOptions() {
     });
 }
 
+let saveTimeout;
+function debouncedSave() {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(saveOptions, 500);
+}
+
+function setupAutoSave() {
+    // Handle immediate save for checkboxes and select elements
+    const immediateElements = document.querySelectorAll('input[type="checkbox"], select');
+    immediateElements.forEach(element => {
+        element.addEventListener('change', saveOptions);
+    });
+
+    // Handle debounced save for text inputs, textareas, and range inputs
+    const debouncedElements = document.querySelectorAll(
+        'input[type="text"], input[type="number"], textarea, input[type="range"]'
+    );
+    debouncedElements.forEach(element => {
+        if (element.type === 'range') {
+            element.addEventListener('input', () => {
+                // Update display value immediately
+                const valueDisplay = document.getElementById(`${element.id}Value`);
+                if (valueDisplay) {
+                    valueDisplay.textContent = element.value;
+                }
+                // Debounce the save
+                debouncedSave();
+            });
+        } else {
+            element.addEventListener('input', debouncedSave);
+        }
+    });
+}
+
 // Add input validation listeners
 function addValidationListeners() {
     const apiKeyInput = document.getElementById('apiKey');
     const promptInput = document.getElementById('defaultPrompt');
     const maxPostsInput = document.getElementById('maxPosts');
-    const temperatureInput = document.getElementById('temperature');
-    const maxTokensInput = document.getElementById('maxTokens');
     
     apiKeyInput.addEventListener('input', function() {
         const isValid = this.value.trim().match(/^[A-Za-z0-9-_]*$/);
@@ -139,18 +171,10 @@ function addValidationListeners() {
         const isValid = !isNaN(value) && value >= 1 && value <= 50;
         this.style.borderColor = isValid ? '' : 'red';
     });
-
-    temperatureInput.addEventListener('input', function() {
-        document.getElementById('temperatureValue').textContent = this.value;
-    });
-
-    maxTokensInput.addEventListener('input', function() {
-        document.getElementById('maxTokensValue').textContent = this.value;
-    });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     restoreOptions();
     addValidationListeners();
+    setupAutoSave();
 });
-document.getElementById('save').addEventListener('click', saveOptions);
