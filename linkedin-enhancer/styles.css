@@ -1,5 +1,11 @@
 /* Base styles */
 :root {
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.12);
+    --radius-sm: 8px;
+    --radius-md: 16px;
+
+    /* Light theme colors */
     --linkedin-blue: #0a66c2;
     --linkedin-blue-hover: #004182;
     --linkedin-bg: #f3f2ef;
@@ -8,10 +14,35 @@
     --text-primary: #191919;
     --text-secondary: #666666;
     --border-color: #e0e0e0;
-    --shadow-sm: 0 2px 4px rgba(0,0,0,0.08);
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.12);
-    --radius-sm: 8px;
-    --radius-md: 16px;
+    --card-bg: #ffffff;
+}
+
+/* Dark theme colors */
+[data-theme="dark"] {
+    --linkedin-blue: #6db3f2;
+    --linkedin-blue-hover: #549dde;
+    --linkedin-bg: #121212;
+    --success-green: #3cb371;
+    --success-green-hover: #349b64;
+    --text-primary: #ffffff;
+    --text-secondary: #b0b0b0;
+    --border-color: #333333;
+    --card-bg: #1e1e1e;
+}
+
+/* System theme support */
+[data-theme="system"] {
+    @media (prefers-color-scheme: dark) {
+        --linkedin-blue: #6db3f2;
+        --linkedin-blue-hover: #549dde;
+        --linkedin-bg: #121212;
+        --success-green: #3cb371;
+        --success-green-hover: #349b64;
+        --text-primary: #ffffff;
+        --text-secondary: #b0b0b0;
+        --border-color: #333333;
+        --card-bg: #1e1e1e;
+    }
 }
 
 body {
@@ -24,7 +55,6 @@ body {
     line-height: 1.5;
 }
 
-/* Typography */
 h1 {
     color: var(--linkedin-blue);
     text-align: center;
@@ -33,9 +63,8 @@ h1 {
     font-weight: 600;
 }
 
-/* Post Cards */
 .post-card {
-    background: white;
+    background: var(--card-bg);
     border-radius: var(--radius-sm);
     box-shadow: var(--shadow-sm);
     margin-bottom: 24px;
@@ -74,7 +103,6 @@ h1 {
     border-bottom: 1px solid var(--border-color);
 }
 
-/* Buttons and Actions */
 .post-actions {
     display: flex;
     flex-direction: column;
@@ -106,7 +134,6 @@ h1 {
     cursor: not-allowed;
 }
 
-/* Generated Comment Section */
 .generated-comment {
     margin-top: 16px;
     padding: 16px;
@@ -128,7 +155,7 @@ h1 {
     color: var(--text-primary);
     margin-bottom: 12px;
     padding: 12px;
-    background: white;
+    background: var(--card-bg);
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-color);
 }
@@ -153,7 +180,6 @@ h1 {
     background-color: var(--success-green-hover);
 }
 
-/* Loading States */
 #loading-indicator {
     text-align: center;
     color: var(--text-secondary);
@@ -176,23 +202,21 @@ h1 {
     border: 1px solid #fee2e2;
 }
 
-/* Debug Info Panel */
 #debug-info {
-    background: white;
+    background: var(--card-bg);
     padding: 16px;
     margin: 16px 0;
     font-family: monospace;
     font-size: 12px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-color);
+    color: var(--text-primary);
 }
 
-/* Utility Classes */
 .hidden {
     display: none;
 }
 
-/* Loading Animation */
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
@@ -200,13 +224,12 @@ h1 {
 .loading-spinner {
     width: 20px;
     height: 20px;
-    border: 2px solid #f3f3f3;
+    border: 2px solid var(--border-color);
     border-top: 2px solid var(--linkedin-blue);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
 
-/* Transitions */
 .generated-comment {
     transition: all 0.3s ease;
 }

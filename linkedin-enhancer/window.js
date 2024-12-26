@@ -1,10 +1,30 @@
 console.log("Window script loaded");
 
+// Theme initialization function
+function initializeTheme() {
+    chrome.storage.sync.get('theme', function(data) {
+        if (data.theme) {
+            document.body.setAttribute('data-theme', data.theme);
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log("Window DOM loaded");
+    
+    // Initialize theme
+    initializeTheme();
+    
     const loadingIndicator = document.getElementById('loading-indicator');
     if (loadingIndicator) {
         loadingIndicator.style.display = 'block';
+    }
+});
+
+// Listen for theme changes
+chrome.storage.onChanged.addListener(function(changes, namespace) {
+    if (changes.theme) {
+        document.body.setAttribute('data-theme', changes.theme.newValue);
     }
 });
 
@@ -82,7 +102,6 @@ function displayPosts(posts) {
         return;
     }
 
-    // Clear existing posts
     postContainer.innerHTML = '';
     if (statusMessage) {
         statusMessage.textContent = `Displaying ${posts.length} posts`;
@@ -90,17 +109,13 @@ function displayPosts(posts) {
 
     posts.forEach((post, index) => {
         try {
-            // Clone the template
             const postElement = document.importNode(postTemplate.content, true);
             
-            // Clean up the name (remove duplicate lines and extra whitespace)
             const cleanName = post.posterName.split('\n')[0].trim();
             
-            // Set the content
             postElement.querySelector('.poster-name').textContent = cleanName;
             postElement.querySelector('.post-content').textContent = post.postContent;
             
-            // Add buttons and their event listeners
             const generateBtn = postElement.querySelector('.generate-comment-btn');
             const generatedComment = postElement.querySelector('.generated-comment');
             const commentContent = postElement.querySelector('.comment-content');
