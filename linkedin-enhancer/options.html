@@ -42,6 +42,9 @@
         .range-value {
             min-width: 40px;
         }
+        input[type="number"] {
+            width: 80px;
+        }
         button {
             background-color: #0077b5;
             color: white;
@@ -98,7 +101,7 @@
         </div>
         <div class="form-group">
             <label for="aiModel">AI Model:</label>
-            <select id="aiModel">
+            <select id="aiModel" title="Select the AI model for comment generation">
                 <option value="gemini-pro">Gemini Pro</option>
                 <option value="gemini-pro-vision">Gemini Pro Vision</option>
             </select>
@@ -106,7 +109,7 @@
         </div>
         <div class="form-group">
             <label for="temperature">Creativity Level:</label>
-            <div class="range-container">
+            <div class="range-container" title="Higher values generate more creative, varied responses">
                 <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.7">
                 <span class="range-value" id="temperatureValue">0.7</span>
             </div>
@@ -114,7 +117,7 @@
         </div>
         <div class="form-group">
             <label for="maxTokens">Maximum Comment Length:</label>
-            <div class="range-container">
+            <div class="range-container" title="Maximum length of generated comments (in tokens)">
                 <input type="range" id="maxTokens" min="50" max="500" step="50" value="150">
                 <span class="range-value" id="maxTokensValue">150</span>
             </div>
@@ -128,15 +131,15 @@
         <div class="form-group">
             <label for="defaultPrompt">Default Comment Prompt:</label>
             <textarea id="defaultPrompt" rows="4" placeholder="Enter your default prompt template. Use {content} for post content and {name} for poster name."></textarea>
-            <small>Customize the base prompt for generating comments</small>
+            <small>Customize the base prompt for generating comments. Use <code>{content}</code> and <code>{name}</code> placeholders.</small>
         </div>
         <div class="form-group">
             <label for="promptStyle">Prompt Style:</label>
-            <select id="promptStyle">
-                <option value="professionell-formell">Professionell & Formell</option>
-                <option value="interaktiv-ansprechend">Interaktiv & Ansprechend</option>
-                <option value="analytisch-durchdacht">Analytisch & Durchdacht</option>
-                <option value="unterstützend-ermutigend">Unterstützend & Ermutigend</option>
+            <select id="promptStyle" title="Choose a pre-defined style for your comments">
+                <option value="professional-formal">Professional & Formal</option>
+                <option value="interactive-engaging">Interactive & Engaging</option>
+                <option value="analytical-thoughtful">Analytical & Thoughtful</option>
+                <option value="supportive-encouraging">Supportive & Encouraging</option>
             </select>
             <small>Choose a pre-defined style for your comments</small>
         </div>
@@ -152,7 +155,7 @@
         <h3>Display Settings</h3>
         <div class="form-group">
             <label for="theme">Theme:</label>
-            <select id="theme">
+            <select id="theme" title="Select the color theme for the extension">
                 <option value="light">Light</option>
                 <option value="dark">Dark</option>
                 <option value="system">System Default</option>
@@ -160,7 +163,7 @@
         </div>
         <div class="form-group">
             <label for="fontSize">Font Size:</label>
-            <select id="fontSize">
+            <select id="fontSize" title="Adjust the font size in the extension's UI">
                 <option value="small">Small</option>
                 <option value="medium">Medium</option>
                 <option value="large">Large</option>
@@ -168,7 +171,7 @@
         </div>
         <div class="form-group">
             <label for="maxPosts">Maximum Posts Displayed:</label>
-            <input type="number" id="maxPosts" min="1" max="50" value="10">
+            <input type="number" id="maxPosts" min="1" max="50" value="10" title="Maximum number of posts to show in the popup window">
             <small>Maximum number of posts to show in the popup window</small>
         </div>
     </div>
@@ -177,14 +180,14 @@
     <div class="section">
         <h3>Advanced Settings</h3>
         <div class="form-group">
-            <label>
+            <label title="Show additional debugging information in the console">
                 <input type="checkbox" id="debugMode">
                 Enable Debug Mode
             </label>
             <small>Show additional debugging information in the console</small>
         </div>
         <div class="form-group">
-            <label>
+            <label title="Automatically expand the comment section after generation">
                 <input type="checkbox" id="autoExpand">
                 Auto-expand Comment Section
             </label>
