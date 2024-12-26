@@ -72,6 +72,16 @@ chrome.runtime.onMessage.addListener(
             displayPosts(request.postContent);
             sendResponse({ status: "success" });
         }
+
+        if (request.action === "displayPrompt") {
+            const promptDisplay = document.querySelector('.prompt-display');
+            const promptTextElement = document.querySelector('.prompt-text');
+            if (promptDisplay && promptTextElement) {
+                promptTextElement.textContent = request.prompt;
+                promptDisplay.classList.remove('hidden');
+            }
+        }
+
         return false;
     }
 );
@@ -118,6 +128,7 @@ function displayPosts(posts) {
             
             const generateBtn = postElement.querySelector('.generate-comment-btn');
             const generatedComment = postElement.querySelector('.generated-comment');
+            const promptDisplay = postElement.querySelector('.prompt-display');
             const commentContent = postElement.querySelector('.comment-content');
             const copyBtn = postElement.querySelector('.copy-comment-btn');
             
@@ -127,6 +138,7 @@ function displayPosts(posts) {
                         generateBtn.disabled = true;
                         generateBtn.textContent = 'Generating...';
                         generatedComment.classList.remove('hidden');
+                        promptDisplay.classList.add('hidden');
                         commentContent.textContent = 'Generating comment...';
                         
                         const generatedText = await APIService.generateComment(

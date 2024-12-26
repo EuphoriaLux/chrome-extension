@@ -21,6 +21,9 @@ class APIService {
                     .replace('{name}', posterName)
                 : `Generate a professional comment for LinkedIn post by ${posterName}: "${postContent}"`;
 
+            // Send the prompt to display it in the UI
+            chrome.runtime.sendMessage({ action: "displayPrompt", prompt: prompt });
+
             const apiBaseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/';
             const model = settings.aiModel || 'gemini-pro';
             const apiUrl = `${apiBaseUrl}${model}:generateContent?key=${settings.apiKey}`;
