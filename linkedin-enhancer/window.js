@@ -73,15 +73,6 @@ chrome.runtime.onMessage.addListener(
             sendResponse({ status: "success" });
         }
 
-        if (request.action === "displayPrompt") {
-            const promptDisplay = document.querySelector('.prompt-display');
-            const promptTextElement = document.querySelector('.prompt-text');
-            if (promptDisplay && promptTextElement) {
-                promptTextElement.textContent = request.prompt;
-                promptDisplay.classList.remove('hidden');
-            }
-        }
-
         return false;
     }
 );
@@ -131,14 +122,21 @@ function displayPosts(posts) {
             const promptDisplay = postElement.querySelector('.prompt-display');
             const commentContent = postElement.querySelector('.comment-content');
             const copyBtn = postElement.querySelector('.copy-comment-btn');
+            const promptTextElement = postElement.querySelector('.prompt-text');
             
             if (generateBtn) {
                 generateBtn.addEventListener('click', async () => {
                     try {
                         generateBtn.disabled = true;
+                        const settings = await chrome.storage.sync.get(['defaultPrompt']);
+                        const prompt = settings.defaultPrompt
+                            ? settings.defaultPrompt
+                                .replace('{content}', post.postContent)
+                                .replace('{name}', cleanName)
+                            : `Generate a professional comment for LinkedIn post by ${cleanName}: "${post.postContent}"`;
                         generateBtn.textContent = 'Generating...';
                         generatedComment.classList.remove('hidden');
-                        promptDisplay.classList.add('hidden');
+                        promptDisplay.classList.remove('hidden');
                         commentContent.textContent = 'Generating comment...';
                         
                         const generatedText = await APIService.generateComment(
@@ -146,6 +144,7 @@ function displayPosts(posts) {
                             cleanName
                         );
                         
+                        promptTextElement.textContent = prompt;
                         commentContent.textContent = generatedText;
                     } catch (error) {
                         commentContent.textContent = `Error: ${error.message}`;
