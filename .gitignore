@@ -1,0 +1,11 @@
+# Ignore environment files
+.env
+.venv
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+
+# Ignore other unwanted files
+.DS_Store
+node_modules/
