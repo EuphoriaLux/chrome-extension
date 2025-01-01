@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "LinkedIn Enhancer",
+  "version": "0.1.0",
+  "description": "Enhances the LinkedIn user interface.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "clipboardWrite",
+    "tabs",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://www.linkedin.com/*"
+  ],
+  "background": {
+    "service_worker": "background.bundle.js"
+  },
+  "action": {
+    "default_title": "LinkedIn Enhancer"
+  },
+  "options_page": "options.html",
+  "web_accessible_resources": [
+    {
+      "resources": ["images/icon16.png", "images/icon48.png", "images/icon128.png"],
+      "matches": ["https://www.linkedin.com/*"]
+    }
+  ],
+  "icons": {
+  },
+  "author": "Your Name",
+  "minimum_chrome_version": "88"
+}
