@@ -9,7 +9,7 @@
     "128": "assets/icon128.png"
   },
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "window.html"
   },
   "options_ui": {
     "page": "options.html",
