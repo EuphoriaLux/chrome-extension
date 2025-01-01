@@ -1,40 +1,70 @@
 // webpack.config.js
 const path = require('path');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = {
-  // Set to "development" or "production"
-  mode: 'development',
+  mode: 'development',  // switch to 'production' for your final build
 
-  // Define multiple entry points if needed
   entry: {
-    // This will bundle background.js into "background.bundle.js"
-    background: './linkedin-enhancer/src/background.js',
-    // If you have a content script or popup, add additional entries here:
-    contentScript: './linkedin-enhancer/src/contentScript.js',
+    background: './src/background.js',
+    contentScript: './src/contentScript.js',
+    popup: './src/popup/popup.js',
+    options: './src/options/options.js',
+    window: './src/window/window.js'  // if used as a separate window
   },
 
-  // Output folder and naming
   output: {
-    // The absolute path to the folder where bundled files will go
     path: path.resolve(__dirname, 'dist'),
-    // [name] will be "background" or "contentScript" from the entry object
-    filename: '[name].bundle.js',
+    filename: '[name].bundle.js',  // e.g. background.bundle.js, popup.bundle.js, etc.
+    clean: true
   },
 
-  // Module rules/loaders go here if you need to handle anything other than plain JS
   module: {
     rules: [
-      // For example, if you want to transpile ES6/TypeScript:
+      // If you want to handle JS with Babel, TypeScript, or CSS in JS,
+      // you'd add loaders here.
+      // e.g.:
       // {
       //   test: /\.js$/,
       //   exclude: /node_modules/,
-      //   use: {
-      //     loader: 'babel-loader',
-      //   },
+      //   use: 'babel-loader'
       // },
-    ],
+      // {
+      //   test: /\.css$/,
+      //   use: ['style-loader', 'css-loader']
+      // }
+    ]
   },
 
-  // If your extension does not need source maps, you can omit this
   devtool: 'cheap-module-source-map',
+
+  plugins: [
+    new CopyWebpackPlugin({
+      patterns: [
+        // Copy manifest.json
+        { 
+          from: path.resolve(__dirname, 'manifest.json'), 
+          to: path.resolve(__dirname, 'dist') 
+        },
+        // Copy icons
+        { 
+          from: path.resolve(__dirname, 'src/assets'), 
+          to: path.resolve(__dirname, 'dist/assets') 
+        },
+        // Copy HTML files
+        { 
+          from: path.resolve(__dirname, 'src/popup/popup.html'), 
+          to: path.resolve(__dirname, 'dist/popup.html')
+        },
+        { 
+          from: path.resolve(__dirname, 'src/options/options.html'), 
+          to: path.resolve(__dirname, 'dist/options.html')
+        },
+        { 
+          from: path.resolve(__dirname, 'src/window/window.html'), 
+          to: path.resolve(__dirname, 'dist/window.html')
+        }
+      ]
+    })
+  ]
 };
