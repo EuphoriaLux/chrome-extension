@@ -13,6 +13,18 @@ chrome.action.onClicked.addListener(async (tab) => {
     }
 
     try {
+        let windowReady = false;
+        
+        // Listen for the window ready message
+        const windowReadyListener = (request, sender, sendResponse) => {
+            if (request.action === "windowReady") {
+                console.log("Background script - Window ready message received");
+                windowReady = true;
+                chrome.runtime.onMessage.removeListener(windowReadyListener);
+            }
+        };
+        chrome.runtime.onMessage.addListener(windowReadyListener);
+
         const originalTabId = tab.id;
 
         // Create the window first
@@ -30,11 +42,8 @@ chrome.action.onClicked.addListener(async (tab) => {
         });
         console.log("Content script injected successfully");
 
-        // Increase timeout and add error handling
+        // Increase timeout
         await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // Add a timeout before sending the message to the window
-        await new Promise(resolve => setTimeout(resolve, 500));
 
         try {
             console.log("Sending message to content script to get posts...");
@@ -53,32 +62,33 @@ chrome.action.onClicked.addListener(async (tab) => {
             
             // Get the tab in the new window
             const windowTabs = await chrome.tabs.query({windowId: newWindow.id});
+
             if (windowTabs && windowTabs[0]) {
                 const popupTabId = windowTabs[0].id;
                 
-                // Send the posts to the popup window
-                try {
-                    await new Promise((resolve, reject) => {
-                        chrome.tabs.sendMessage(popupTabId, {
-                            action: "setPostContent",
-                            postContent: response?.posts || [],
-                            debug: response?.debug || {}
-                        }, response => {
-                            const lastError = chrome.runtime.lastError;
-                            if (lastError) {
-                                console.error("Window message error:", lastError);
-                                reject(new Error(lastError.message));
-                            } else {
-                                resolve(response);
-                            }
-                        });
-                    });
-                } catch (error) {
-                    console.error("Error sending message to window:", error);
+                // Wait for the window to be ready before sending the message
+                const waitForWindowReady = () => new Promise(resolve => {
+                    const check = () => {
+                        if (windowReady) {
+                            resolve();
+                        } else {
+                            setTimeout(check, 100);
+                        }
+                    };
+                    check();
+                });
+                
+                await waitForWindowReady();
+
+                chrome.runtime.sendMessage({
+                    action: "setPostContent",
+                    postContent: response?.posts || [],
+                    debug: response?.debug || {}
+                }, (response) => {
                     if (chrome.runtime.lastError) {
-                        console.error("Additional error details:", chrome.runtime.lastError);
+                        console.error("Error sending message to window:", chrome.runtime.lastError);                            
                     }
-                }
+                });
             } else {
                 console.error("Could not find the tab in the new window");
             }

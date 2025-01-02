@@ -2,9 +2,13 @@ console.log("Window script loaded");
 
 // Send a message to the background script when the window is ready
 document.addEventListener('DOMContentLoaded', function() {
-    chrome.runtime.sendMessage({ action: "windowReady" }, function(response) {
-        console.log("Window script - Window ready message sent to background script");
-    });
+    chrome.runtime.sendMessage({ action: "windowReady" }, function(response) {        
+        if (chrome.runtime.lastError) {
+            console.error("Window script - Error sending window ready message:", chrome.runtime.lastError);
+        } else {
+            console.log("Window script - Window ready message sent to background script");
+        }
+    });    
 });
 
 // Initialize theme
