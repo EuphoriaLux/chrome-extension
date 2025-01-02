@@ -68,6 +68,11 @@ module.exports = {
         {
           from: path.resolve(__dirname, './styles.css'),
           to: path.resolve(__dirname, 'dist')
+        },
+        // Copy api-service.js
+        {
+          from: path.resolve(__dirname, 'src/api/api-service.js'),
+          to: path.resolve(__dirname, 'dist/api/api-service.js')
         }
       ]
     })
