@@ -44,7 +44,7 @@ chrome.runtime.onMessage.addListener(
                 if (chrome.runtime.lastError) {
                     console.error("Window script - Error sending posts received message:", chrome.runtime.lastError);
                 } else {
-                    console.log("Window script - Posts received message sent to background script");
+                    console.log("Window script - Posts received message sent successfully:", response);
                 }
             });
 
