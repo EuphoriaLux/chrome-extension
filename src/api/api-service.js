@@ -7,15 +7,8 @@ class APIService {
                 throw new Error('Missing required content for comment generation.');
             }
 
-            // Get the access token from storage
-            const accessToken = await new Promise((resolve) => {
-                chrome.storage.sync.get(['accessToken'], (result) => {
-                    resolve(result.accessToken);
-                });
-            });
-
-            if (!accessToken) {
-                throw new Error('OAuth 2 access token not configured. Please go to extension options and authenticate.');
+            if (!settings.apiKey) {
+                throw new Error('API key not configured. Please go to extension options and configure your Google AI API key.');
             }
 
             const prompt = settings.defaultPrompt
@@ -45,7 +38,7 @@ class APIService {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`
+                    'Authorization': `Bearer ${settings.apiKey}`
                 },
                 body: JSON.stringify({
                     contents: [{

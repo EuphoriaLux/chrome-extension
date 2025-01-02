@@ -2,7 +2,6 @@
 function saveOptions() {
     const apiKey = document.getElementById('apiKey').value.trim();
     const defaultPrompt = document.getElementById('defaultPrompt').value.trim();
-    const accessToken = document.getElementById('accessToken').value.trim();
     const temperature = parseFloat(document.getElementById('temperature').value);
     const maxTokens = parseInt(document.getElementById('maxTokens').value);
     const promptStyle = document.getElementById('promptStyle').value;
@@ -35,7 +34,6 @@ function saveOptions() {
 
     chrome.storage.sync.set({
         apiKey: apiKey,
-        accessToken: accessToken,
         temperature: temperature,
         maxTokens: maxTokens,
         promptStyle: promptStyle,
@@ -75,7 +73,6 @@ function showStatus(message, type = 'success') {
 function restoreOptions() {
     chrome.storage.sync.get({
         apiKey: '',
-        accessToken: '',
         temperature: 0.7,
         maxTokens: 150,
         promptStyle: 'professional-formal',
@@ -93,7 +90,6 @@ function restoreOptions() {
             return;
         }
         document.getElementById('apiKey').value = items.apiKey;
-        document.getElementById('accessToken').value = items.accessToken;
         document.getElementById('temperature').value = items.temperature;
         document.getElementById('temperatureValue').textContent = items.temperature;
         document.getElementById('maxTokens').value = items.maxTokens;
