@@ -87,14 +87,24 @@ if (window.linkedInEnhancerInitialized) {
             });
 
             if (!response.ok) {
-                const error = await response.json();
+                const responseBody = await response.text();
+                let errorJson;
+                try {
+                    errorJson = JSON.parse(responseBody);
+                } catch (e) {
+                    errorJson = { parseError: e.message };
+                }
+                
                 debugError("API Error Details:", {
                     status: response.status,
                     statusText: response.statusText,
-                    error: error,
-                    headers: Object.fromEntries(response.headers.entries())
+                    error: errorJson,
+                    responseBody: responseBody,
+                    headers: Object.fromEntries(response.headers.entries()),
+                    requestUrl: response.url,
+                    requestMethod: response.type
                 });
-                throw new Error(`API Error: ${error.error?.message || 'Unknown error'} (Status: ${response.status})`);
+                throw new Error(`API Error: ${errorJson.error?.message || 'Unknown error'} (Status: ${response.status})`);
             }
 
             const data = await response.json();
