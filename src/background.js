@@ -98,20 +98,34 @@ chrome.action.onClicked.addListener(async (tab) => {
                     });
                 });
 
-                // Wait for posts received confirmation
+                // Wait for posts received confirmation with error handling
                 const postsReceived = new Promise((resolve, reject) => {
                     const listener = (request, sender, sendResponse) => {
-                        if (request.action === "postsReceived") {
-                            console.log("Background script - Posts received confirmation from window");
-                            chrome.runtime.onMessage.removeListener(listener);
-                            resolve();
+                        try {
+                            if (request.action === "postsReceived") {
+                                console.log("Background script - Posts received confirmation from window");
+                                sendResponse({ success: true });
+                                chrome.runtime.onMessage.removeListener(listener);
+                                resolve();
+                            }
+                            return true; // Keep the message channel open
+                        } catch (error) {
+                            console.error("Background script - Error in postsReceived listener:", error);
+                            reject(error);
                         }
                     };
                     chrome.runtime.onMessage.addListener(listener);
                 });
 
-                // Wait for both promises
-                await Promise.all([postsDelivered, postsReceived]);
+                // Wait for both promises with timeout
+                const timeout = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error("Operation timed out")), 5000)
+                );
+
+                await Promise.race([
+                    Promise.all([postsDelivered, postsReceived]),
+                    timeout
+                ]);
                 console.log("Background script - Posts successfully delivered and received");
 
             } else {
