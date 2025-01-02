@@ -1,7 +1,142 @@
 /******/ (() => { // webpackBootstrap
-/*!************************************************!*\
-  !*** ./linkedin-enhancer/src/contentScript.js ***!
-  \************************************************/
+/******/ 	"use strict";
+/******/ 	var __webpack_modules__ = ({
+
+/***/ "./src/api/api-service.js":
+/*!********************************!*\
+  !*** ./src/api/api-service.js ***!
+  \********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   APIService: () => (/* binding */ APIService)
+/* harmony export */ });
+class APIService {
+    static async generateComment(postContent, posterName) {
+        try {
+            const settings = await chrome.storage.sync.get(['apiKey', 'defaultPrompt', 'aiModel', 'temperature', 'maxTokens', 'blacklist']);
+
+            if (!postContent || !posterName) {
+                throw new Error('Missing required content for comment generation.');
+            }
+
+            if (!settings.apiKey) {
+                throw new Error('API key not configured. Please go to extension options and configure your Google AI API key.');
+            }
+
+            const prompt = settings.defaultPrompt
+                ? settings.defaultPrompt
+                    .replace('{content}', postContent)
+                    .replace('{name}', posterName)
+                : `Generate a professional comment for LinkedIn post by ${posterName}: "${postContent}"`;
+
+            const apiBaseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/';
+            const model = 'gemini-pro';
+            const apiUrl = `${apiBaseUrl}${model}:generateContent`;
+            const apiKeyParam = `?key=${settings.apiKey}`;
+            const fullApiUrl = apiUrl + apiKeyParam;
+
+            console.log('Making API request to:', fullApiUrl);
+            console.log('Request body:', {
+                contents: [{
+                    parts: [{
+                        text: prompt
+                    }]
+                }],
+                generationConfig: {
+                    temperature: settings.temperature || 0.7,
+                    maxOutputTokens: settings.maxTokens || 150,
+                }
+            });
+
+            const response = await fetch(fullApiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: prompt
+                        }]
+                    }],
+                    generationConfig: {
+                        temperature: settings.temperature || 0.7,
+                        maxOutputTokens: settings.maxTokens || 150,
+                    }
+                })
+            });
+
+            console.log('Response status:', response.status);
+            console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+            if (!response.ok) {
+                const responseBody = await response.text();
+                let errorData;
+                try {
+                    errorData = JSON.parse(responseBody);
+                } catch (e) {
+                    errorData = { parseError: e.message, responseBody: responseBody };
+                }
+                console.error('API Error Details:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: Object.fromEntries(response.headers.entries()),
+                    errorData: errorData,
+                    responseBody: responseBody
+                });
+                throw new Error(
+                    `API request failed with status ${response.status}. ${errorData.error?.message || 'Unknown error'}. Response body: ${responseBody}`
+                );
+            }
+
+            const data = await response.json();
+            console.log('API Response data:', data);
+            
+            if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+                let generatedText = data.candidates[0].content.parts[0].text.trim();
+
+                // Apply blacklist filtering if configured
+                if (settings.blacklist) {
+                    const blacklistWords = settings.blacklist.split('\n')
+                        .map(word => word.trim())
+                        .filter(word => word);
+                    if (blacklistWords.length > 0) {
+                        const regex = new RegExp(blacklistWords.join('|'), 'gi');
+                        generatedText = generatedText.replace(regex, '***');
+                    }
+                }
+
+                return generatedText;
+            } else {
+                throw new Error('The AI service returned an unexpected response format. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error generating comment:', error);
+            console.error('Error stack:', error.stack);
+            // Enhance error message for user display
+            const userMessage = error.message.includes('API key') 
+                ? error.message 
+                : `Failed to generate comment: ${error.message}`;
+            throw new Error(userMessage);
+        }
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/contentScript.js":
+/*!******************************!*\
+  !*** ./src/contentScript.js ***!
+  \******************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _api_api_service_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./api/api-service.js */ "./src/api/api-service.js");
+
+
 if (window.linkedInEnhancerInitialized) {
     console.log("LinkedIn Enhancer already initialized, skipping...");
 } else {
@@ -28,6 +163,52 @@ if (window.linkedInEnhancerInitialized) {
         }
     }
 
+    async function generateAIComment(postId, posts) {
+        try {
+            // Get the post data
+            const post = posts.find(p => p.index === parseInt(postId));
+            if (!post) {
+                throw new Error("Post not found");
+            }
+
+            debugLog("Found post:", post);
+
+            // Call API Service to generate comment
+            const apiResponse = await _api_api_service_js__WEBPACK_IMPORTED_MODULE_0__.APIService.generateComment(post.postContent, post.posterName);
+
+            if (!apiResponse) {
+                throw new Error("API response is undefined");
+            }
+
+            return {
+                comment: apiResponse,
+                debug: {
+                    prompt: post.postContent,
+                    timestamp: new Date().toISOString(),
+                    model: 'gemini-2.0-flash-exp'
+                }
+            };
+
+        } catch (error) {
+            debugError("Error generating AI comment:", {
+                error: error,
+                message: error.message,
+                stack: error.stack,
+                timestamp: new Date().toISOString()
+            });
+            return {
+                error: error.message,
+                debug: {
+                    errorStack: error.stack,
+                    timestamp: new Date().toISOString()
+                }
+            };
+        }
+    }
+
+    // Store posts globally to access them during comment generation
+    let cachedPosts = [];
+
     chrome.runtime.onMessage.addListener(
         function(request, sender, sendResponse) {
             debugLog("Content script received message:", request);
@@ -36,9 +217,9 @@ if (window.linkedInEnhancerInitialized) {
                 try {
                     debugLog("Getting LinkedIn posts...");
                     const postContent = getLinkedInPosts();
+                    cachedPosts = postContent; // Cache the posts
                     debugLog("Retrieved posts:", postContent);
                     
-                    // Send response immediately
                     sendResponse({ 
                         posts: postContent,
                         debug: {
@@ -57,9 +238,26 @@ if (window.linkedInEnhancerInitialized) {
                         }
                     });
                 }
+            } else if (request.action === "generateComment") {
+                // Use async/await with generateAIComment
+                generateAIComment(request.postId, cachedPosts)
+                    .then(response => {
+                        debugLog("Generated comment response:", response);
+                        sendResponse(response);
+                    })
+                    .catch(error => {
+                        debugError("Error in generateComment:", error);
+                        sendResponse({
+                            error: error.message,
+                            debug: {
+                                errorStack: error.stack,
+                                timestamp: new Date().toISOString()
+                            }
+                        });
+                    });
+                return true; // Keep the message channel open for async response
             }
-            // Return false since we're sending the response synchronously
-            return false;
+            return true; // Keep the message channel open
         }
     );
 
@@ -220,6 +418,72 @@ if (window.linkedInEnhancerInitialized) {
     }
 }
 
+
+/***/ })
+
+/******/ 	});
+/************************************************************************/
+/******/ 	// The module cache
+/******/ 	var __webpack_module_cache__ = {};
+/******/ 	
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/ 		// Check if module is in cache
+/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
+/******/ 		if (cachedModule !== undefined) {
+/******/ 			return cachedModule.exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = __webpack_module_cache__[moduleId] = {
+/******/ 			// no module.id needed
+/******/ 			// no module.loaded needed
+/******/ 			exports: {}
+/******/ 		};
+/******/ 	
+/******/ 		// Execute the module function
+/******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+/******/ 	
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/ 	
+/************************************************************************/
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__webpack_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	(() => {
+/******/ 		// define __esModule on exports
+/******/ 		__webpack_require__.r = (exports) => {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/************************************************************************/
+/******/ 	
+/******/ 	// startup
+/******/ 	// Load entry module and return exports
+/******/ 	__webpack_require__("./src/contentScript.js");
+/******/ 	// This entry module is referenced by other modules so it can't be inlined
+/******/ 	var __webpack_exports__ = __webpack_require__("./src/api/api-service.js");
+/******/ 	
 /******/ })()
 ;
 //# sourceMappingURL=contentScript.bundle.js.map

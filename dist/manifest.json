@@ -1,0 +1,21 @@
+{
+  "name": "LinkedIn Enhancer",
+  "version": "1.0.0",
+  "manifest_version": 3,
+  "description": "Enhance LinkedIn with AI features",
+  "icons": {
+    "16": "assets/icon16.png",
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
+  },
+  "action": {
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "background": {
+    "service_worker": "background.bundle.js"
+  },
+  "permissions": ["scripting", "activeTab", "storage"]
+}
