@@ -53,6 +53,28 @@ if (window.linkedInEnhancerInitialized) {
                         }
                     });
                 }
+            } else if (request.action === "generateComment") {
+                try {
+                    debugLog("Generating comment for post ID:", request.postId);
+                    // TODO: Implement actual comment generation
+                    const comment = "This is a test comment for post " + request.postId;
+                    sendResponse({ 
+                        comment: comment,
+                        debug: {
+                            timestamp: new Date().toISOString()
+                        }
+                    });
+                } catch (error) {
+                    debugError("Error generating comment:", error);
+                    sendResponse({ 
+                        comment: null,
+                        error: error.message,
+                        debug: {
+                            errorStack: error.stack,
+                            timestamp: new Date().toISOString()
+                        }
+                    });
+                }
             }
             // Return false since we're sending the response synchronously
             return false;

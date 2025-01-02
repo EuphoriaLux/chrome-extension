@@ -117,27 +117,41 @@ function setupButtonListeners() {
             commentSection.classList.remove('hidden');
 
             try {
-                // Get the active tab to send message to content script
-                const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-                if (!tabs || !tabs[0]) {
-                    throw new Error("No active tab found");
-                }
+                // Get the active tab to send message to content script with retry
+                const sendMessageWithRetry = async (retries = 3) => {
+                    const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+                    if (!tabs || !tabs[0]) {
+                        throw new Error("No active tab found");
+                    }
+                    const currentTabId = tabs[0].id;
+                    console.log("Window script - Sending generateComment message to tab ID:", currentTabId);
 
-                // Send message to content script
-                const response = await new Promise((resolve, reject) => {
-                    chrome.tabs.sendMessage(
-                        tabs[0].id,
-                        { action: "generateComment", postId: postId },
-                        response => {
-                            if (chrome.runtime.lastError) {
-                                reject(chrome.runtime.lastError);
-                            } else {
-                                resolve(response);
+                    return new Promise((resolve, reject) => {
+                        chrome.tabs.sendMessage(
+                            currentTabId,
+                            { action: "generateComment", postId: postId },
+                            response => {
+                                if (chrome.runtime.lastError) {
+                                    console.error("Window script - Error sending generateComment message:", {
+                                        error: chrome.runtime.lastError,
+                                        message: chrome.runtime.lastError.message,
+                                        stack: new Error().stack
+                                    });
+                                    if (retries > 0) {
+                                        console.log(`Retrying generateComment message (${retries} attempts remaining)...`);
+                                        setTimeout(() => sendMessageWithRetry(retries - 1).then(resolve).catch(reject), 500);
+                                    } else {
+                                        reject(new Error(chrome.runtime.lastError.message));
+                                    }
+                                } else {
+                                    resolve(response);
+                                }
                             }
-                        }
-                    );
-                });
+                        );
+                    });
+                };
 
+                const response = await sendMessageWithRetry();
                 if (response && response.comment) {
                     commentContent.textContent = response.comment;
                 } else {
