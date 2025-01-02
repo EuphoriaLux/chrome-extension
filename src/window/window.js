@@ -39,29 +39,21 @@ chrome.runtime.onMessage.addListener(
             const postContainer = document.getElementById('post-container');
             postContainer.innerHTML = ''; // Clear previous content
 
-            // Send acknowledgment back to background script with retry mechanism
-            const sendAcknowledgment = (retries = 3) => {
-                chrome.runtime.sendMessage({ 
-                    action: "postsReceived",
-                    timestamp: new Date().toISOString()
-                }, function(response) {
-                    if (chrome.runtime.lastError) {
-                        console.error("Window script - Error sending posts received message:", {
-                            error: chrome.runtime.lastError,
-                            message: chrome.runtime.lastError.message,
-                            stack: new Error().stack
-                        });
-                        if (retries > 0) {
-                            console.log(`Retrying acknowledgment (${retries} attempts remaining)...`);
-                            setTimeout(() => sendAcknowledgment(retries - 1), 500);
-                        }
-                    } else {
-                        console.log("Window script - Posts received message sent successfully:", response);
-                    }
-                });
-            };
-
-            sendAcknowledgment();
+            // Send acknowledgment back to background script immediately
+            chrome.runtime.sendMessage({
+                action: "postsReceived",
+                timestamp: new Date().toISOString()
+            }, function(response) {
+                if (chrome.runtime.lastError) {
+                    console.error("Window script - Error sending posts received message:", {
+                        error: chrome.runtime.lastError,
+                        message: chrome.runtime.lastError.message,
+                        stack: new Error().stack
+                    });
+                } else {
+                    console.log("Window script - Posts received message sent successfully:", response);
+                }
+            });
 
             if (Array.isArray(posts)) {
                 posts.forEach(post => {
@@ -86,7 +78,7 @@ chrome.runtime.onMessage.addListener(
                     `;
                     postContainer.appendChild(postDiv);
                 });
-                setupButtonListeners();
+                setupButtonListeners(); // Setup listeners after posts are rendered
             } else {
                 const contentDiv = document.createElement('div');
                 contentDiv.textContent = "Could not retrieve post content.";
