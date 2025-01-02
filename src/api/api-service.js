@@ -25,6 +25,19 @@ class APIService {
             const model = settings.aiModel || 'gemini-pro';
             const apiUrl = `${apiBaseUrl}${model}:generateContent?key=${settings.apiKey}`;
 
+            console.log('Making API request to:', apiUrl);
+            console.log('Request body:', {
+                contents: [{
+                    parts: [{
+                        text: prompt
+                    }]
+                }],
+                generationConfig: {
+                    temperature: settings.temperature || 0.7,
+                    maxOutputTokens: settings.maxTokens || 150,
+                }
+            });
+
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
@@ -43,15 +56,32 @@ class APIService {
                 })
             });
 
+            console.log('Response status:', response.status);
+            console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
+                const responseBody = await response.text();
+                let errorData;
+                try {
+                    errorData = JSON.parse(responseBody);
+                } catch (e) {
+                    errorData = { parseError: e.message, responseBody: responseBody };
+                }
+                console.error('API Error Details:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: Object.fromEntries(response.headers.entries()),
+                    errorData: errorData,
+                    responseBody: responseBody
+                });
                 throw new Error(
-                    errorData.error?.message || 
-                    `API request failed with status ${response.status}. Please check your API key and try again.`
+                    `API request failed with status ${response.status}. ${errorData.error?.message || 'Unknown error'}. Response body: ${responseBody}`
                 );
             }
 
             const data = await response.json();
+            console.log('API Response data:', data);
+            
             if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
                 let generatedText = data.candidates[0].content.parts[0].text.trim();
 
@@ -72,6 +102,7 @@ class APIService {
             }
         } catch (error) {
             console.error('Error generating comment:', error);
+            console.error('Error stack:', error.stack);
             // Enhance error message for user display
             const userMessage = error.message.includes('API key') 
                 ? error.message 
