@@ -110,28 +110,48 @@ function setupButtonListeners() {
             const loadingSpinner = this.querySelector('.loading-spinner');
             
             // Show loading state
+            if (loadingSpinner) {
+                loadingSpinner.classList.remove('hidden');
+            }
             this.disabled = true;
-            loadingSpinner.classList.remove('hidden');
             commentSection.classList.remove('hidden');
-            
+
             try {
-                // Request comment generation from background script
-                const response = await chrome.runtime.sendMessage({
-                    action: "generateComment",
-                    postId: postId
+                // Get the active tab to send message to content script
+                const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+                if (!tabs || !tabs[0]) {
+                    throw new Error("No active tab found");
+                }
+
+                // Send message to content script
+                const response = await new Promise((resolve, reject) => {
+                    chrome.tabs.sendMessage(
+                        tabs[0].id,
+                        { action: "generateComment", postId: postId },
+                        response => {
+                            if (chrome.runtime.lastError) {
+                                reject(chrome.runtime.lastError);
+                            } else {
+                                resolve(response);
+                            }
+                        }
+                    );
                 });
-                
+
                 if (response && response.comment) {
                     commentContent.textContent = response.comment;
                 } else {
-                    commentContent.textContent = "Failed to generate comment.";
+                    throw new Error("Invalid response from content script");
                 }
             } catch (error) {
-                commentContent.textContent = "Error generating comment: " + error.message;
+                console.error("Error generating comment:", error);
+                commentContent.textContent = `Error generating comment: ${error.message}`;
             } finally {
                 // Reset button state
+                if (loadingSpinner) {
+                    loadingSpinner.classList.add('hidden');
+                }
                 this.disabled = false;
-                loadingSpinner.classList.add('hidden');
             }
         });
     });
