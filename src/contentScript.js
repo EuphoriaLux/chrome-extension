@@ -56,28 +56,45 @@ if (window.linkedInEnhancerInitialized) {
             } else if (request.action === "generateComment") {
                 try {
                     debugLog("Generating comment for post ID:", request.postId);
-                    // TODO: Implement actual comment generation
-                    const comment = "This is a test comment for post " + request.postId;
-                    sendResponse({ 
-                        comment: comment,
-                        debug: {
-                            timestamp: new Date().toISOString()
-                        }
-                    });
+                    // Send response with retry mechanism
+                    const sendResponseWithRetry = (retries = 3) => {
+                        const comment = "This is a test comment for post " + request.postId;
+                        sendResponse({
+                            comment: comment,
+                            debug: {
+                                timestamp: new Date().toISOString()
+                            }
+                        }, response => {
+                            if (chrome.runtime.lastError) {
+                                console.error("Content script - Error sending generateComment response:", {
+                                    error: chrome.runtime.lastError,
+                                    message: chrome.runtime.lastError.message,
+                                    stack: new Error().stack
+                                });
+                                if (retries > 0) {
+                                    console.log(`Retrying generateComment response (${retries} attempts remaining)...`);
+                                    setTimeout(() => sendResponseWithRetry(retries - 1), 500);
+                                }
+                            } else {
+                                console.log("Content script - generateComment response sent successfully:", response);
+                            }
+                        });
+                    };
+                    sendResponseWithRetry();
                 } catch (error) {
                     debugError("Error generating comment:", error);
-                    sendResponse({ 
+                    sendResponse({
                         comment: null,
                         error: error.message,
                         debug: {
                             errorStack: error.stack,
                             timestamp: new Date().toISOString()
                         }
-                    });
+                    }, () => {});
                 }
             }
-            // Return false since we're sending the response synchronously
-            return false;
+            // Return true since we're sending the response asynchronously
+            return true;
         }
     );
 

@@ -13,6 +13,7 @@ chrome.action.onClicked.addListener(async (tab) => {
     }
 
     try {
+        let currentTabId = tab.id;
         let windowReady = false;
         
         // Listen for the window ready message
@@ -26,8 +27,6 @@ chrome.action.onClicked.addListener(async (tab) => {
         };
         chrome.runtime.onMessage.addListener(windowReadyListener);
 
-        const originalTabId = tab.id;
-
         // Create the window first
         const newWindow = await chrome.windows.create({
             url: "window.html",
@@ -38,7 +37,7 @@ chrome.action.onClicked.addListener(async (tab) => {
 
         console.log("Injecting content script...");
         await chrome.scripting.executeScript({
-            target: { tabId: originalTabId },
+            target: { tabId: currentTabId },
             files: ['contentScript.bundle.js']
         });
         console.log("Content script injected successfully");
@@ -49,7 +48,7 @@ chrome.action.onClicked.addListener(async (tab) => {
         try {
             console.log("Sending message to content script to get posts...");
             const response = await new Promise((resolve, reject) => {
-                chrome.tabs.sendMessage(originalTabId, { action: "getPostContent" }, response => {
+                chrome.tabs.sendMessage(currentTabId, { action: "getPostContent" }, response => {
                     if (chrome.runtime.lastError) {
                         console.error("Content script message error:", chrome.runtime.lastError);
                         reject(new Error(chrome.runtime.lastError.message));
@@ -127,6 +126,31 @@ chrome.action.onClicked.addListener(async (tab) => {
                     timeout
                 ]);
                 console.log("Background script - Posts successfully delivered and received");
+
+                // Listen for generateComment messages from window
+                const generateCommentListener = (request, sender, sendResponse) => {
+                    if (request.action === "generateComment") {
+                        console.log("Background script - Received generateComment message from window:", request);
+                        chrome.tabs.sendMessage(currentTabId, {
+                            action: "generateComment",
+                            postId: request.postId
+                        }, response => {
+                            if (chrome.runtime.lastError) {
+                                console.error("Background script - Error sending generateComment message to content script:", {
+                                    error: chrome.runtime.lastError,
+                                    message: chrome.runtime.lastError.message,
+                                    stack: new Error().stack
+                                });
+                                sendResponse({ error: chrome.runtime.lastError.message });
+                            } else {
+                                console.log("Background script - Received generateComment response from content script:", response);
+                                sendResponse(response);
+                            }
+                        });
+                        return true; // Keep the message channel open
+                    }
+                };
+                chrome.runtime.onMessage.addListener(generateCommentListener);
 
             } else {
                 console.error("Could not find the tab in the new window");
