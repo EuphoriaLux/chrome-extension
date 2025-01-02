@@ -33,12 +33,16 @@ chrome.action.onClicked.addListener(async (tab) => {
         // Increase timeout and add error handling
         await new Promise(resolve => setTimeout(resolve, 1000));
 
+        // Add a timeout before sending the message to the window
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         try {
             console.log("Sending message to content script to get posts...");
             const response = await new Promise((resolve, reject) => {
-                chrome.tabs.sendMessage(originalTabId, {action: "getPostContent"}, response => {
+                chrome.tabs.sendMessage(originalTabId, { action: "getPostContent" }, response => {
                     if (chrome.runtime.lastError) {
-                        reject(chrome.runtime.lastError);
+                        console.error("Content script message error:", chrome.runtime.lastError);
+                        reject(new Error(chrome.runtime.lastError.message));
                     } else {
                         resolve(response);
                     }
@@ -60,8 +64,10 @@ chrome.action.onClicked.addListener(async (tab) => {
                             postContent: response?.posts || [],
                             debug: response?.debug || {}
                         }, response => {
-                            if (chrome.runtime.lastError) {
-                                reject(chrome.runtime.lastError);
+                            const lastError = chrome.runtime.lastError;
+                            if (lastError) {
+                                console.error("Window message error:", lastError);
+                                reject(new Error(lastError.message));
                             } else {
                                 resolve(response);
                             }
@@ -69,16 +75,24 @@ chrome.action.onClicked.addListener(async (tab) => {
                     });
                 } catch (error) {
                     console.error("Error sending message to window:", error);
-                    console.error("Error details:", chrome.runtime.lastError);
+                    if (chrome.runtime.lastError) {
+                        console.error("Additional error details:", chrome.runtime.lastError);
+                    }
                 }
             } else {
                 console.error("Could not find the tab in the new window");
             }
         } catch (error) {
             console.error("Error in message handling:", error);
+            if (chrome.runtime.lastError) {
+                console.error("Runtime error details:", chrome.runtime.lastError);
+            }
         }
 
     } catch (error) {
         console.error("Error in click handler:", error);
+        if (chrome.runtime.lastError) {
+            console.error("Final error details:", chrome.runtime.lastError);
+        }
     }
 });
