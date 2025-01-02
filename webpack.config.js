@@ -1,4 +1,3 @@
-// webpack.config.js
 const path = require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
@@ -7,7 +6,10 @@ module.exports = {
 
   entry: {
     background: './src/background.js',
-    contentScript: './src/contentScript.js',
+    contentScript: [
+        './src/contentScript.js',
+        './src/api/api-service.js'
+    ],
     popup: './src/popup/popup.js',
     options: './src/options/options.js',
     window: './src/window/window.js'  // if used as a separate window
@@ -68,11 +70,6 @@ module.exports = {
         {
           from: path.resolve(__dirname, './styles.css'),
           to: path.resolve(__dirname, 'dist')
-        },
-        // Copy api-service.js
-        {
-          from: path.resolve(__dirname, 'src/api/api-service.js'),
-          to: path.resolve(__dirname, 'dist/api/api-service.js')
         }
       ]
     })
