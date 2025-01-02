@@ -26,7 +26,7 @@ chrome.action.onClicked.addListener(async (tab) => {
         console.log("Injecting content script...");
         await chrome.scripting.executeScript({
             target: { tabId: originalTabId },
-            files: ['content.js']
+            files: ['contentScript.bundle.js']
         });
         console.log("Content script injected successfully");
 
