@@ -21,6 +21,7 @@ chrome.action.onClicked.addListener(async (tab) => {
                 console.log("Background script - Window ready message received");
                 windowReady = true;
                 chrome.runtime.onMessage.removeListener(windowReadyListener);
+                sendResponse({ received: true });
             }
         };
         chrome.runtime.onMessage.addListener(windowReadyListener);
@@ -42,7 +43,7 @@ chrome.action.onClicked.addListener(async (tab) => {
         });
         console.log("Content script injected successfully");
 
-        // Increase timeout
+        // Increase timeout for window ready
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         try {
@@ -80,15 +81,39 @@ chrome.action.onClicked.addListener(async (tab) => {
                 
                 await waitForWindowReady();
 
-                chrome.runtime.sendMessage({
-                    action: "setPostContent",
-                    postContent: response?.posts || [],
-                    debug: response?.debug || {}
-                }, (response) => {
-                    if (chrome.runtime.lastError) {
-                        console.error("Error sending message to window:", chrome.runtime.lastError);                            
-                    }
+                // Send posts to window and wait for acknowledgment
+                const postsDelivered = new Promise((resolve, reject) => {
+                    chrome.runtime.sendMessage({
+                        action: "setPostContent",
+                        postContent: response?.posts || [],
+                        debug: response?.debug || {}
+                    }, response => {
+                        if (chrome.runtime.lastError) {
+                            console.error("Error sending message to window:", chrome.runtime.lastError);
+                            reject(chrome.runtime.lastError);
+                        } else {
+                            console.log("Background script - Posts sent to window");
+                            resolve();
+                        }
+                    });
                 });
+
+                // Wait for posts received confirmation
+                const postsReceived = new Promise((resolve, reject) => {
+                    const listener = (request, sender, sendResponse) => {
+                        if (request.action === "postsReceived") {
+                            console.log("Background script - Posts received confirmation from window");
+                            chrome.runtime.onMessage.removeListener(listener);
+                            resolve();
+                        }
+                    };
+                    chrome.runtime.onMessage.addListener(listener);
+                });
+
+                // Wait for both promises
+                await Promise.all([postsDelivered, postsReceived]);
+                console.log("Background script - Posts successfully delivered and received");
+
             } else {
                 console.error("Could not find the tab in the new window");
             }

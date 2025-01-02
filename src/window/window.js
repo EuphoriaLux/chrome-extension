@@ -39,6 +39,15 @@ chrome.runtime.onMessage.addListener(
             const postContainer = document.getElementById('post-container');
             postContainer.innerHTML = ''; // Clear previous content
 
+            // Send acknowledgment back to background script
+            chrome.runtime.sendMessage({ action: "postsReceived" }, function(response) {
+                if (chrome.runtime.lastError) {
+                    console.error("Window script - Error sending posts received message:", chrome.runtime.lastError);
+                } else {
+                    console.log("Window script - Posts received message sent to background script");
+                }
+            });
+
             if (Array.isArray(posts)) {
                 posts.forEach(post => {
                     const postDiv = document.createElement('div');
@@ -69,6 +78,9 @@ chrome.runtime.onMessage.addListener(
                 contentDiv.classList.add('status-message', 'error');
                 postContainer.appendChild(contentDiv);
             }
+            // Send response to acknowledge receipt
+            sendResponse({ success: true });
+            return true;
         }
     }
 );
