@@ -117,41 +117,31 @@ function setupButtonListeners() {
             commentSection.classList.remove('hidden');
 
             try {
-                // Send message to background script to generate comment
+                // Send message to background script to generate comment and await response
                 const response = await new Promise((resolve, reject) => {
-                    chrome.runtime.sendMessage(
-                        { action: "generateComment", postId: postId },
-                        response => {
-                            if (chrome.runtime.lastError) {
-                                console.error("Window script - Error sending generateComment message:", {
-                                    error: chrome.runtime.lastError,
-                                    message: chrome.runtime.lastError.message,
-                                    stack: new Error().stack
-                                });
-                                reject(new Error(chrome.runtime.lastError.message));
-                            } else if (response && response.error) {
-                                console.error("Window script - Error generating comment:", response.error);
-                                reject(new Error(response.error));
-                            } else {
-                                resolve(response);
-                            }
+                    chrome.runtime.sendMessage({ action: "generateComment", postId: postId }, response => {
+                        if (chrome.runtime.lastError) {
+                            console.error("Window script - Error sending generateComment message:", {
+                                error: chrome.runtime.lastError,
+                                message: chrome.runtime.lastError.message,
+                                stack: new Error().stack
+                            });
+                            reject(new Error(chrome.runtime.lastError.message));
+                        } else if (response && response.error) {
+                            console.error("Window script - Error generating comment:", response.error);
+                            reject(new Error(response.error));
+                        } else {
+                            resolve(response);
                         }
-                    );
+                    });
                 });
 
-                if (response && response.comment) {
-                    commentContent.textContent = response.comment;
-                } else {
-                    throw new Error("Invalid response from background script");
-                }
+                commentContent.textContent = response.comment;
             } catch (error) {
                 console.error("Error generating comment:", error);
                 commentContent.textContent = `Error generating comment: ${error.message}`;
-            } finally {
-                // Reset button state
-                if (loadingSpinner) {
-                    loadingSpinner.classList.add('hidden');
-                }
+            } finally {                
+                loadingSpinner.classList.add('hidden');
                 this.disabled = false;
             }
         });
