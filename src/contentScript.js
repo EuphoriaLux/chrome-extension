@@ -32,95 +32,24 @@ if (window.linkedInEnhancerInitialized) {
                 throw new Error("Post not found");
             }
 
-            // Get settings from storage
-            const settings = await new Promise((resolve) => {
-                chrome.storage.sync.get({
-                    apiKey: '',
-                    aiModel: 'gemini-pro',
-                    temperature: 0.7,
-                    maxTokens: 150,
-                    defaultPrompt: 'You are a professional LinkedIn user. Generate an engaging and relevant comment for the following LinkedIn post by {name}: "{content}". The comment should be professional, add value to the discussion, and maintain a friendly tone. Keep it concise and natural.'
-                }, resolve);
-            });
+            debugLog("Found post:", post);
 
-            if (!settings.apiKey) {
-                throw new Error("API key not configured. Please set it in the extension options.");
+            // Call API Service to generate comment
+            const apiResponse = await APIService.generateComment(post.postContent, post.posterName);
+
+            if (!apiResponse) {
+                throw new Error("API response is undefined");
             }
-
-            debugLog("Using API settings:", {
-                model: settings.aiModel,
-                temperature: settings.temperature,
-                maxTokens: settings.maxTokens
-            });
-
-            // Log API key right before the fetch request
-            debugLog("API Key before fetch:", settings.apiKey);
-            debugLog("API Key type:", typeof settings.apiKey);
-            debugLog("API Key length:", settings.apiKey.length);
-            debugLog("API Key first 4 chars:", settings.apiKey.substring(0, 4));
-            debugLog("API Key format valid:", /^[A-Za-z0-9-_]+$/.test(settings.apiKey));
-
-            // Prepare the prompt
-            const prompt = settings.defaultPrompt
-                .replace('{name}', post.posterName)
-                .replace('{content}', post.postContent);
-
-            // Call Google AI API
-            debugLog("Sending request to Google AI API...");
-            const response = await fetch('https://generativelanguage.googleapis.com/v1/models/' + settings.aiModel + ':generateContent', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${settings.apiKey}`
-                },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{
-                            text: prompt
-                        }]
-                    }],
-                    generationConfig: {
-                        temperature: settings.temperature,
-                        maxOutputTokens: settings.maxTokens
-                    }
-                })
-            });
-
-            if (!response.ok) {
-                const responseBody = await response.text();
-                let errorJson;
-                try {
-                    errorJson = JSON.parse(responseBody);
-                } catch (e) {
-                    errorJson = { parseError: e.message };
-                }
-                
-                debugError("API Error Details:", {
-                    status: response.status,
-                    statusText: response.statusText,
-                    error: errorJson,
-                    responseBody: responseBody,
-                    headers: Object.fromEntries(response.headers.entries()),
-                    requestUrl: response.url,
-                    requestMethod: response.type
-                });
-                throw new Error(`API Error: ${errorJson.error?.message || 'Unknown error'} (Status: ${response.status})`);
-            }
-
-            const data = await response.json();
-            debugLog("API Response:", data);
-            
-            // Extract the generated comment from the response
-            const generatedComment = data.candidates[0].content.parts[0].text;
 
             return {
-                comment: generatedComment,
+                comment: apiResponse,
                 debug: {
-                    prompt,
+                    prompt: post.postContent,
                     timestamp: new Date().toISOString(),
-                    model: settings.aiModel
+                    model: 'gemini-2.0-flash-exp'
                 }
             };
+
         } catch (error) {
             debugError("Error generating AI comment:", {
                 error: error,

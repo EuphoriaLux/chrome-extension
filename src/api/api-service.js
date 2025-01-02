@@ -2,17 +2,20 @@ class APIService {
     static async generateComment(postContent, posterName) {
         try {
             const settings = await chrome.storage.sync.get(['apiKey', 'defaultPrompt', 'aiModel', 'temperature', 'maxTokens', 'blacklist']);
-            
-            if (!settings.apiKey) {
-                throw new Error('API key not configured. Please go to extension options and enter your Google AI API key.');
-            }
-
-            if (!settings.apiKey.match(/^[A-Za-z0-9-_]+$/)) {
-                throw new Error('Invalid API key format. Please check your API key in the extension options.');
-            }
 
             if (!postContent || !posterName) {
                 throw new Error('Missing required content for comment generation.');
+            }
+
+            // Get the access token from storage
+            const accessToken = await new Promise((resolve) => {
+                chrome.storage.sync.get(['accessToken'], (result) => {
+                    resolve(result.accessToken);
+                });
+            });
+
+            if (!accessToken) {
+                throw new Error('OAuth 2 access token not configured. Please go to extension options and authenticate.');
             }
 
             const prompt = settings.defaultPrompt
@@ -22,8 +25,8 @@ class APIService {
                 : `Generate a professional comment for LinkedIn post by ${posterName}: "${postContent}"`;
 
             const apiBaseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/';
-            const model = settings.aiModel || 'gemini-pro';
-            const apiUrl = `${apiBaseUrl}${model}:generateContent?key=${settings.apiKey}`;
+            const model = settings.aiModel || 'gemini-2.0-flash-exp';
+            const apiUrl = `${apiBaseUrl}${model}:generateContent`;
 
             console.log('Making API request to:', apiUrl);
             console.log('Request body:', {
@@ -41,7 +44,8 @@ class APIService {
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`
                 },
                 body: JSON.stringify({
                     contents: [{
