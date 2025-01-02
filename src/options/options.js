@@ -2,7 +2,7 @@
 function saveOptions() {
     const apiKey = document.getElementById('apiKey').value.trim();
     const defaultPrompt = document.getElementById('defaultPrompt').value.trim();
-    const aiModel = document.getElementById('aiModel').value;
+    const accessToken = document.getElementById('accessToken').value.trim();
     const temperature = parseFloat(document.getElementById('temperature').value);
     const maxTokens = parseInt(document.getElementById('maxTokens').value);
     const promptStyle = document.getElementById('promptStyle').value;
@@ -13,11 +13,6 @@ function saveOptions() {
 
     // Validate API key
     if (!apiKey) {
-        showStatus('API key is required.', 'error');
-        return;
-    }
-
-    if (!apiKey.match(/^[A-Za-z0-9-_]+$/)) {
         showStatus('Invalid API key format. Please check your key.', 'error');
         return;
     }
@@ -40,7 +35,7 @@ function saveOptions() {
 
     chrome.storage.sync.set({
         apiKey: apiKey,
-        aiModel: aiModel,
+        accessToken: accessToken,
         temperature: temperature,
         maxTokens: maxTokens,
         promptStyle: promptStyle,
@@ -80,7 +75,7 @@ function showStatus(message, type = 'success') {
 function restoreOptions() {
     chrome.storage.sync.get({
         apiKey: '',
-        aiModel: 'gemini-pro',
+        accessToken: '',
         temperature: 0.7,
         maxTokens: 150,
         promptStyle: 'professional-formal',
@@ -98,7 +93,7 @@ function restoreOptions() {
             return;
         }
         document.getElementById('apiKey').value = items.apiKey;
-        document.getElementById('aiModel').value = items.aiModel;
+        document.getElementById('accessToken').value = items.accessToken;
         document.getElementById('temperature').value = items.temperature;
         document.getElementById('temperatureValue').textContent = items.temperature;
         document.getElementById('maxTokens').value = items.maxTokens;
@@ -156,11 +151,11 @@ function addValidationListeners() {
     const maxPostsInput = document.getElementById('maxPosts');
     
     apiKeyInput.addEventListener('input', function() {
-        const isValid = this.value.trim().match(/^[A-Za-z0-9-_]*$/);
-        this.style.borderColor = isValid ? '' : 'red';
+        // No validation for API key
+        this.style.borderColor = '';
     });
 
-    promptInput.addEventListener('input', function() {
+    promptInput.addEventListener('input', function() {        
         const value = this.value.trim();
         const hasPlaceholders = value.includes('{content}') && value.includes('{name}');
         this.style.borderColor = hasPlaceholders ? '' : 'red';
