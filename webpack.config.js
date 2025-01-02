@@ -67,7 +67,7 @@ module.exports = {
         // Copy styles.css
         {
           from: path.resolve(__dirname, './styles.css'),
-          to: path.resolve(__dirname, 'dist/styles.css')
+          to: path.resolve(__dirname, 'dist')
         }
       ]
     })

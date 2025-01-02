@@ -53,19 +53,26 @@ chrome.action.onClicked.addListener(async (tab) => {
                 const popupTabId = windowTabs[0].id;
                 
                 // Send the posts to the popup window
-                await new Promise((resolve, reject) => {
-                    chrome.tabs.sendMessage(popupTabId, {
-                        action: "setPostContent",
-                        postContent: response?.posts || [],
-                        debug: response?.debug || {}
-                    }, response => {
-                        if (chrome.runtime.lastError) {
-                            reject(chrome.runtime.lastError);
-                        } else {
-                            resolve(response);
-                        }
+                try {
+                    await new Promise((resolve, reject) => {
+                        chrome.tabs.sendMessage(popupTabId, {
+                            action: "setPostContent",
+                            postContent: response?.posts || [],
+                            debug: response?.debug || {}
+                        }, response => {
+                            if (chrome.runtime.lastError) {
+                                reject(chrome.runtime.lastError);
+                            } else {
+                                resolve(response);
+                            }
+                        });
                     });
-                });
+                } catch (error) {
+                    console.error("Error sending message to window:", error);
+                    console.error("Error details:", chrome.runtime.lastError);
+                }
+            } else {
+                console.error("Could not find the tab in the new window");
             }
         } catch (error) {
             console.error("Error in message handling:", error);
