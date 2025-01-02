@@ -53,7 +53,9 @@ if (window.linkedInEnhancerInitialized) {
                 maxTokens: settings.maxTokens
             });
 
-            // Log API key details (safely)
+            // Log API key right before the fetch request
+            debugLog("API Key before fetch:", settings.apiKey);
+            debugLog("API Key type:", typeof settings.apiKey);
             debugLog("API Key length:", settings.apiKey.length);
             debugLog("API Key first 4 chars:", settings.apiKey.substring(0, 4));
             debugLog("API Key format valid:", /^[A-Za-z0-9-_]+$/.test(settings.apiKey));
