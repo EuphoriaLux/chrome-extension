@@ -18,10 +18,12 @@ export class APIService {
                 : `Generate a professional comment for LinkedIn post by ${posterName}: "${postContent}"`;
 
             const apiBaseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/';
-            const model = settings.aiModel || 'gemini-2.0-flash-exp';
+            const model = 'gemini-pro';
             const apiUrl = `${apiBaseUrl}${model}:generateContent`;
+            const apiKeyParam = `?key=${settings.apiKey}`;
+            const fullApiUrl = apiUrl + apiKeyParam;
 
-            console.log('Making API request to:', apiUrl);
+            console.log('Making API request to:', fullApiUrl);
             console.log('Request body:', {
                 contents: [{
                     parts: [{
@@ -34,11 +36,10 @@ export class APIService {
                 }
             });
 
-            const response = await fetch(apiUrl, {
+            const response = await fetch(fullApiUrl, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${settings.apiKey}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     contents: [{
