@@ -47,12 +47,19 @@ if (window.linkedInEnhancerInitialized) {
                 throw new Error("API key not configured. Please set it in the extension options.");
             }
 
+            debugLog("Using API settings:", {
+                model: settings.aiModel,
+                temperature: settings.temperature,
+                maxTokens: settings.maxTokens
+            });
+
             // Prepare the prompt
             const prompt = settings.defaultPrompt
                 .replace('{name}', post.posterName)
                 .replace('{content}', post.postContent);
 
             // Call Google AI API
+            debugLog("Sending request to Google AI API...");
             const response = await fetch('https://generativelanguage.googleapis.com/v1/models/' + settings.aiModel + ':generateContent', {
                 method: 'POST',
                 headers: {
@@ -74,10 +81,17 @@ if (window.linkedInEnhancerInitialized) {
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(`API Error: ${error.error?.message || 'Unknown error'}`);
+                debugError("API Error Details:", {
+                    status: response.status,
+                    statusText: response.statusText,
+                    error: error,
+                    headers: Object.fromEntries(response.headers.entries())
+                });
+                throw new Error(`API Error: ${error.error?.message || 'Unknown error'} (Status: ${response.status})`);
             }
 
             const data = await response.json();
+            debugLog("API Response:", data);
             
             // Extract the generated comment from the response
             const generatedComment = data.candidates[0].content.parts[0].text;
@@ -91,7 +105,12 @@ if (window.linkedInEnhancerInitialized) {
                 }
             };
         } catch (error) {
-            debugError("Error generating AI comment:", error);
+            debugError("Error generating AI comment:", {
+                error: error,
+                message: error.message,
+                stack: error.stack,
+                timestamp: new Date().toISOString()
+            });
             return {
                 error: error.message,
                 debug: {
