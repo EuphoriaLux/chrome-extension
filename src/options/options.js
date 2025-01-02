@@ -80,7 +80,7 @@ function showStatus(message, type = 'success') {
 function restoreOptions() {
     chrome.storage.sync.get({
         apiKey: '',
-        aiModel: 'gemini-2.0-flash-exp',
+        aiModel: 'gemini-pro',
         temperature: 0.7,
         maxTokens: 150,
         promptStyle: 'professional-formal',
