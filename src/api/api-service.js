@@ -1,4 +1,4 @@
-class APIService {
+export class APIService {
     static async generateComment(postContent, posterName) {
         try {
             const settings = await chrome.storage.sync.get(['apiKey', 'defaultPrompt', 'aiModel', 'temperature', 'maxTokens', 'blacklist']);

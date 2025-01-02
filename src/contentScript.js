@@ -1,3 +1,5 @@
+import { APIService } from './api/api-service.js';
+
 if (window.linkedInEnhancerInitialized) {
     console.log("LinkedIn Enhancer already initialized, skipping...");
 } else {
