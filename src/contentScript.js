@@ -24,6 +24,87 @@ if (window.linkedInEnhancerInitialized) {
         }
     }
 
+    async function generateAIComment(postId, posts) {
+        try {
+            // Get the post data
+            const post = posts.find(p => p.index === parseInt(postId));
+            if (!post) {
+                throw new Error("Post not found");
+            }
+
+            // Get settings from storage
+            const settings = await new Promise((resolve) => {
+                chrome.storage.sync.get({
+                    apiKey: '',
+                    aiModel: 'gemini-pro',
+                    temperature: 0.7,
+                    maxTokens: 150,
+                    defaultPrompt: 'You are a professional LinkedIn user. Generate an engaging and relevant comment for the following LinkedIn post by {name}: "{content}". The comment should be professional, add value to the discussion, and maintain a friendly tone. Keep it concise and natural.'
+                }, resolve);
+            });
+
+            if (!settings.apiKey) {
+                throw new Error("API key not configured. Please set it in the extension options.");
+            }
+
+            // Prepare the prompt
+            const prompt = settings.defaultPrompt
+                .replace('{name}', post.posterName)
+                .replace('{content}', post.postContent);
+
+            // Call Google AI API
+            const response = await fetch('https://generativelanguage.googleapis.com/v1/models/' + settings.aiModel + ':generateContent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${settings.apiKey}`
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: prompt
+                        }]
+                    }],
+                    generationConfig: {
+                        temperature: settings.temperature,
+                        maxOutputTokens: settings.maxTokens
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(`API Error: ${error.error?.message || 'Unknown error'}`);
+            }
+
+            const data = await response.json();
+            
+            // Extract the generated comment from the response
+            const generatedComment = data.candidates[0].content.parts[0].text;
+
+            return {
+                comment: generatedComment,
+                debug: {
+                    prompt,
+                    timestamp: new Date().toISOString(),
+                    model: settings.aiModel
+                }
+            };
+        } catch (error) {
+            debugError("Error generating AI comment:", error);
+            return {
+                error: error.message,
+                debug: {
+                    errorStack: error.stack,
+                    timestamp: new Date().toISOString()
+                }
+            };
+        }
+    }
+
+    // Store posts globally to access them during comment generation
+    let cachedPosts = [];
+
     chrome.runtime.onMessage.addListener(
         function(request, sender, sendResponse) {
             debugLog("Content script received message:", request);
@@ -32,9 +113,9 @@ if (window.linkedInEnhancerInitialized) {
                 try {
                     debugLog("Getting LinkedIn posts...");
                     const postContent = getLinkedInPosts();
+                    cachedPosts = postContent; // Cache the posts
                     debugLog("Retrieved posts:", postContent);
                     
-                    // Send response immediately
                     sendResponse({ 
                         posts: postContent,
                         debug: {
@@ -54,47 +135,25 @@ if (window.linkedInEnhancerInitialized) {
                     });
                 }
             } else if (request.action === "generateComment") {
-                try {
-                    debugLog("Generating comment for post ID:", request.postId);
-                    // Send response with retry mechanism
-                    const sendResponseWithRetry = (retries = 3) => {
-                        const comment = "This is a test comment for post " + request.postId;
+                // Use async/await with generateAIComment
+                generateAIComment(request.postId, cachedPosts)
+                    .then(response => {
+                        debugLog("Generated comment response:", response);
+                        sendResponse(response);
+                    })
+                    .catch(error => {
+                        debugError("Error in generateComment:", error);
                         sendResponse({
-                            comment: comment,
+                            error: error.message,
                             debug: {
+                                errorStack: error.stack,
                                 timestamp: new Date().toISOString()
                             }
-                        }, response => {
-                            if (chrome.runtime.lastError) {
-                                console.error("Content script - Error sending generateComment response:", {
-                                    error: chrome.runtime.lastError,
-                                    message: chrome.runtime.lastError.message,
-                                    stack: new Error().stack
-                                });
-                                if (retries > 0) {
-                                    console.log(`Retrying generateComment response (${retries} attempts remaining)...`);
-                                    setTimeout(() => sendResponseWithRetry(retries - 1), 500);
-                                }
-                            } else {
-                                console.log("Content script - generateComment response sent successfully:", response);
-                            }
                         });
-                    };
-                    sendResponseWithRetry();
-                } catch (error) {
-                    debugError("Error generating comment:", error);
-                    sendResponse({
-                        comment: null,
-                        error: error.message,
-                        debug: {
-                            errorStack: error.stack,
-                            timestamp: new Date().toISOString()
-                        }
-                    }, () => {});
-                }
+                    });
+                return true; // Keep the message channel open for async response
             }
-            // Return true since we're sending the response asynchronously
-            return true;
+            return true; // Keep the message channel open
         }
     );
 
