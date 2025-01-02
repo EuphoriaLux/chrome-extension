@@ -1,5 +1,12 @@
 console.log("Window script loaded");
 
+// Send a message to the background script when the window is ready
+document.addEventListener('DOMContentLoaded', function() {
+    chrome.runtime.sendMessage({ action: "windowReady" }, function(response) {
+        console.log("Window script - Window ready message sent to background script");
+    });
+});
+
 // Initialize theme
 function initializeTheme() {
     chrome.storage.sync.get('theme', function(data) {
@@ -21,6 +28,7 @@ chrome.storage.onChanged.addListener(function(changes, namespace) {
 
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
+        console.log("Window script - Received message:", request);
         if (request.action === "setPostContent") {
             console.log("Window script - Received posts:", request.postContent);
             const posts = request.postContent;
@@ -38,10 +46,11 @@ chrome.runtime.onMessage.addListener(
                         <div class="post-content">${post.postContent}</div>
                         <div class="post-actions">
                             <button class="generate-comment-btn" data-post-id="${post.index}">
+                                <span class="loading-spinner hidden"></span>
                                 Generate Comment
                             </button>
-                            <div class="generated-comment hidden" id="comment-${post.index}">
-                                <h4>Generated Comment</h4>
+                            <div class="generated-comment hidden">
+                                <h4>Generated Comment:</h4>
                                 <div class="comment-content"></div>
                                 <button class="copy-comment-btn">Copy Comment</button>
                             </div>
@@ -49,8 +58,6 @@ chrome.runtime.onMessage.addListener(
                     `;
                     postContainer.appendChild(postDiv);
                 });
-
-                // Add event listeners for generate and copy buttons
                 setupButtonListeners();
             } else {
                 const contentDiv = document.createElement('div');
@@ -67,12 +74,13 @@ function setupButtonListeners() {
     document.querySelectorAll('.generate-comment-btn').forEach(button => {
         button.addEventListener('click', async function() {
             const postId = this.dataset.postId;
-            const commentSection = document.getElementById(`comment-${postId}`);
+            const commentSection = this.nextElementSibling;
             const commentContent = commentSection.querySelector('.comment-content');
+            const loadingSpinner = this.querySelector('.loading-spinner');
             
             // Show loading state
             this.disabled = true;
-            this.innerHTML = '<div class="loading-spinner"></div> Generating...';
+            loadingSpinner.classList.remove('hidden');
             commentSection.classList.remove('hidden');
             
             try {
@@ -92,7 +100,7 @@ function setupButtonListeners() {
             } finally {
                 // Reset button state
                 this.disabled = false;
-                this.textContent = "Generate Comment";
+                loadingSpinner.classList.add('hidden');
             }
         });
     });
